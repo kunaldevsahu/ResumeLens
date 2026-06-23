@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #111415;
+    color: #e1e2e4;
+    font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111415;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #323537;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1a91f0;
+}
+
+/* Glassmorphism Panel */
+.glass-panel {
+  background: rgba(17, 20, 21, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-header {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Material Icons configuration */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+.fill-icon {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* A4 Page Shadow */
+.resume-shadow {
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
+}
+
+/* Accordion transition styles */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.accordion-open .accordion-content {
+  max-height: 1000px;
+}
+
+.accordion-open .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* Custom color variables mapping for Tailwind v4 */
+:root {
+  --background: #111415;
+  --on-background: #e1e2e4;
+  --surface: #111415;
+  --surface-dim: #111415;
+  --surface-bright: #37393b;
+  --surface-container-lowest: #0c0f10;
+  --surface-container-low: #191c1e;
+  --surface-container: #1d2022;
+  --surface-container-high: #282a2c;
+  --surface-container-highest: #323537;
+  --surface-secondary: #0b1c33;
+  --surface-tertiary: #161b22;
+  --primary: #a0caff;
+  --primary-container: #2294f4;
+  --on-primary: #003259;
+  --on-primary-container: #002b4e;
+  --secondary: #b7c7e6;
+  --secondary-container: #3a4a63;
+  --on-secondary: #213149;
+  --on-secondary-container: #a9b9d7;
+  --tertiary: #ffb781;
+  --tertiary-container: #dc7506;
+  --on-tertiary: #4e2600;
+  --on-tertiary-container: #442000;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --on-surface: #e1e2e4;
+  --on-surface-variant: #bfc7d4;
+  --outline: #8a919e;
+  --outline-variant: #404752;
+  --status-success: #10b981;
+  --status-info: #1a91f0;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
