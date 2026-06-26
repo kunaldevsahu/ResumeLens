@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import resumeRoutes from "./routes/resume.routes";
+import paymentRoutes from "./routes/payment.routes";
+import atsRoutes from "./routes/ats.routes";
 
 const app = express();
 
@@ -11,6 +13,8 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/resumes", resumeRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/ats", atsRoutes);
 
 app.get("/health", (_, res) => {
   res.json({

@@ -1,34 +1,181 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
 import Header from "@/components/navigation/Header";
 import { getResumes, type Resume } from "@/services/resume.service";
+import {
+  analyzeResume,
+  getAtsHistory,
+  getAtsReport,
+  type AtsReport,
+  type AtsHistoryItem,
+} from "@/services/ats.service";
+
+import SelectResume from "@/components/ats/SelectResume";
+import ResumeUploader from "@/components/ats/ResumeUploader";
+import JobDescriptionForm from "@/components/ats/JobDescriptionForm";
+import AnalysisLoader from "@/components/ats/AnalysisLoader";
+import ATSScoreCard from "@/components/ats/ATSScoreCard";
+import ScoreBreakdown from "@/components/ats/ScoreBreakdown";
+import MissingKeywords from "@/components/ats/MissingKeywords";
+import Strengths from "@/components/ats/Strengths";
+import Suggestions from "@/components/ats/Suggestions";
+import HistoryTable from "@/components/ats/HistoryTable";
+
+type WizardState = "home" | "step1" | "step2" | "step3" | "result";
 
 export default function AtsAnalysisPage() {
+  const router = useRouter();
+  
+  // Wizard States
+  const [wizardState, setWizardState] = useState<WizardState>("home");
+  
+  // Step 1: Select Resume States
   const [resumes, setResumes] = useState<Resume[]>([]);
-  const [selectedResume, setSelectedResume] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [activeSourceTab, setActiveSourceTab] = useState<"existing" | "upload" | "linkedin">("existing");
+  const [selectedResumeId, setSelectedResumeId] = useState<string>("");
+  const [uploadedResume, setUploadedResume] = useState<{ name: string; content: string } | null>(null);
+  
+  // Step 2: Job Description States
+  const [jobDescription, setJobDescription] = useState<string>("");
+  
+  // Service Data States
+  const [analysisResult, setAnalysisResult] = useState<AtsReport | null>(null);
+  const [historyList, setHistoryList] = useState<AtsHistoryItem[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [apiError, setApiError] = useState("");
 
+  // 1. Initial Load of Resumes and Scan History
   useEffect(() => {
-    const fetchResumes = async () => {
+    const initData = async () => {
       try {
-        const data = await getResumes();
-        setResumes(data);
-        if (data.length > 0) {
-          setSelectedResume(data[0].id);
+        const resumesData = await getResumes();
+        setResumes(resumesData);
+        if (resumesData.length > 0) {
+          setSelectedResumeId(resumesData[0].id);
         }
       } catch (err) {
-        console.error("Failed to load resumes on ATS page", err);
+        console.error("Failed to load resumes:", err);
       } finally {
-        setLoading(false);
+        setLoadingResumes(false);
+      }
+
+      try {
+        const historyData = await getAtsHistory();
+        setHistoryList(historyData);
+      } catch (err) {
+        console.error("Failed to load ATS history:", err);
+      } finally {
+        setLoadingHistory(false);
       }
     };
-    fetchResumes();
+
+    initData();
   }, []);
 
-  const selectedResumeObj = resumes.find((r) => r.id === selectedResume);
+  // 2. Fetch and refresh history list
+  const refreshHistory = async () => {
+    try {
+      const historyData = await getAtsHistory();
+      setHistoryList(historyData);
+    } catch (err) {
+      console.error("Failed to reload history:", err);
+    }
+  };
+
+  // 3. Load historical report directly
+  const handleSelectReport = async (id: string) => {
+    try {
+      setApiError("");
+      const report = await getAtsReport(id);
+      setAnalysisResult(report);
+      setWizardState("result");
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || err?.message || "Failed to load report");
+    }
+  };
+
+  // 4. Trigger Analysis post to backend
+  const handleStartAnalysis = async () => {
+    setWizardState("step3"); // Transition to Loader screen
+    setApiError("");
+
+    try {
+      const payload: {
+        resumeId?: string;
+        resumeTitle?: string;
+        resumeContent?: string;
+        jobDescription: string;
+      } = {
+        jobDescription,
+      };
+
+      if (activeSourceTab === "existing" && selectedResumeId) {
+        payload.resumeId = selectedResumeId;
+      } else if (activeSourceTab === "upload" && uploadedResume) {
+        payload.resumeTitle = uploadedResume.name;
+        payload.resumeContent = uploadedResume.content;
+      }
+
+      const report = await analyzeResume(payload);
+      setAnalysisResult(report);
+      await refreshHistory(); // Reload history list
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || err?.message || "Analysis execution failed");
+      setWizardState("step2"); // Fallback back to form
+    }
+  };
+
+  // 5. Download report as standard text file
+  const handleDownloadReport = () => {
+    if (!analysisResult) return;
+    const reportText = `RESUMELENS ATS COMPATIBILITY REPORT
+==================================
+Resume: ${analysisResult.resumeTitle}
+Target Role: ${analysisResult.jobTitle || "N/A"}
+Overall ATS Score: ${analysisResult.overallScore}%
+Date: ${new Date(analysisResult.createdAt).toLocaleDateString()}
+
+CATEGORY BREAKDOWN
+------------------
+- Keyword Match: ${analysisResult.keywordScore}%
+- Formatting: ${analysisResult.formattingScore}%
+- Skills Match: ${analysisResult.skillsScore}%
+- Experience Match: ${analysisResult.experienceScore}%
+- Education Match: ${analysisResult.educationScore}%
+
+MISSING KEYWORDS
+----------------
+${analysisResult.missingKeywords.join(", ") || "None"}
+
+KEY STRENGTHS
+-------------
+${analysisResult.strengths.map(s => `- ${s}`).join("\n")}
+
+RECOMMENDED IMPROVEMENTS
+------------------------
+${analysisResult.suggestions.map(s => `- [${s.priority} Priority] ${s.message}`).join("\n")}
+`;
+    const blob = new Blob([reportText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ATS_Report_${analysisResult.resumeTitle.replace(/\s+/g, "_")}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleReset = () => {
+    setSelectedResumeId(resumes.length > 0 ? resumes[0].id : "");
+    setUploadedResume(null);
+    setJobDescription("");
+    setAnalysisResult(null);
+    setWizardState("home");
+  };
 
   return (
     <ProtectedRoute>
@@ -41,242 +188,213 @@ export default function AtsAnalysisPage() {
           <Header />
 
           <main className="p-8 max-w-5xl w-full mx-auto space-y-8">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div>
-                <h2 className="font-['Geist'] text-3xl font-bold text-white mb-1">
-                  ATS Score Analysis
-                </h2>
-                <p className="text-[#bfc7d4] text-sm font-['Inter'] max-w-xl">
-                  Optimize your resume for searchability and ranking. Our AI simulates leading Applicant Tracking Systems to identify friction points in your profile.
-                </p>
+            {/* API Error Notification */}
+            {apiError && (
+              <div className="bg-[#93000a]/20 border border-[#ffb4ab]/30 text-[#ffb4ab] p-3 rounded-lg text-xs font-['Inter'] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px]">error</span>
+                <span>{apiError}</span>
               </div>
+            )}
 
-              {/* Selector */}
-              <div className="relative inline-block text-left shrink-0">
-                <label className="text-xs font-bold text-[#bfc7d4] uppercase tracking-wider opacity-60 mb-2 block">
-                  Analyzing Resume
-                </label>
-                <div className="relative">
-                  <select
-                    value={selectedResume}
-                    onChange={(e) => setSelectedResume(e.target.value)}
-                    className="appearance-none bg-[#1d2022] border border-[#ffffff14] text-white text-sm rounded-lg focus:ring-[#a0caff] focus:border-[#a0caff] block w-64 p-3 pr-10 cursor-pointer hover:bg-[#282a2c] transition-colors"
-                  >
-                    {loading ? (
-                      <option>Loading resumes...</option>
-                    ) : resumes.length === 0 ? (
-                      <option>No resumes found</option>
-                    ) : (
-                      resumes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)
-                    )}
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#bfc7d4]">
-                    expand_more
+            {/* STATE 1: Empty Home View */}
+            {wizardState === "home" && (
+              <div className="space-y-8">
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-[#1d2022] border border-[#ffffff14] rounded-2xl relative overflow-hidden max-w-xl mx-auto py-16">
+                  {/* Glow Backdrop */}
+                  <div className="absolute w-[260px] h-[260px] bg-[#2294f4]/5 blur-[70px] rounded-full pointer-events-none"></div>
+
+                  <span className="material-symbols-outlined text-[64px] text-[#a0caff]/70 bg-[#a0caff]/5 p-5 rounded-2xl border border-[#a0caff]/15 mb-6">
+                    analytics
                   </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Analysis Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Score card (4 cols) */}
-              <div className="lg:col-span-4 bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 flex flex-col items-center justify-center relative overflow-hidden group">
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#2294f4]/10 blur-3xl rounded-full"></div>
-                <div className="relative mb-6">
-                  {/* Radial progress ring */}
-                  <svg className="w-48 h-48 transform -rotate-90">
-                    <circle
-                      className="text-[#323537]"
-                      cx="96"
-                      cy="96"
-                      fill="transparent"
-                      r="80"
-                      stroke="currentColor"
-                      strokeWidth="12"
-                    ></circle>
-                    <circle
-                      className="text-[#2294f4] transition-all duration-1000 ease-out"
-                      cx="96"
-                      cy="96"
-                      fill="transparent"
-                      r="80"
-                      stroke="currentColor"
-                      strokeDasharray="502.6"
-                      strokeDashoffset={selectedResumeObj ? "110" : "502.6"}
-                      strokeLinecap="round"
-                      strokeWidth="12"
-                    ></circle>
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="font-['Geist'] text-4xl font-extrabold text-white">
-                      {selectedResumeObj ? "78%" : "0%"}
-                    </span>
-                    <span className="text-xs text-[#10b981] font-bold uppercase tracking-widest mt-1">
-                      {selectedResumeObj ? "Good" : "Draft"}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-[#bfc7d4] mb-6">
-                    {selectedResumeObj
-                      ? "You are in the top 15% of candidates for this job category."
-                      : "Add more details to generate your score."}
+                  <h2 className="font-['Geist'] text-2xl font-bold text-white mb-2">
+                    Analyze Your Resume
+                  </h2>
+                  <p className="text-xs text-[#bfc7d4] max-w-sm leading-relaxed mb-8 opacity-75">
+                    Compare your resume against a job description and receive an ATS compatibility report with actionable improvements.
                   </p>
-                  <div className="flex gap-2 justify-center">
-                    <div className="h-1 w-8 rounded-full bg-[#2294f4]"></div>
-                    <div className="h-1 w-8 rounded-full bg-[#2294f4]"></div>
-                    <div className="h-1 w-8 rounded-full bg-[#2294f4]"></div>
-                    <div className="h-1 w-8 rounded-full bg-[#323537]"></div>
-                  </div>
+
+                  <button
+                    onClick={() => setWizardState("step1")}
+                    className="bg-[#2294f4] text-[#002b4e] hover:opacity-90 active:scale-[0.98] px-8 py-3 rounded-lg font-['Geist'] text-sm font-bold transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                    <span>Start Analysis</span>
+                  </button>
                 </div>
+
+                {/* History list inside empty state */}
+                {!loadingHistory && historyList.length > 0 && (
+                  <HistoryTable
+                    history={historyList}
+                    onSelectReport={handleSelectReport}
+                  />
+                )}
               </div>
+            )}
 
-              {/* Critical issues list (8 cols) */}
-              <div className="lg:col-span-8 bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-['Geist'] text-xl font-bold flex items-center gap-2 text-white">
-                    <span className="material-symbols-outlined text-[#ef4444]">warning</span>
-                    Critical Issues
-                  </h3>
-                  <span className="bg-[#ef4444]/10 text-[#ef4444] px-3 py-1 rounded-full text-xs font-bold font-['Geist']">
-                    {selectedResumeObj ? "3 High Priority" : "0 Issues"}
-                  </span>
+            {/* STATE 2: Step 1 Selector Wizard */}
+            {wizardState === "step1" && (
+              <div className="bg-[#1d2022] border border-[#ffffff14] rounded-2xl p-8 space-y-6">
+                <div>
+                  <h2 className="font-['Geist'] text-xl font-bold text-white mb-1">
+                    Step 1: Choose Resume
+                  </h2>
+                  <p className="text-xs text-[#bfc7d4] opacity-75">
+                    Import your details from ResumeLens or upload a static file.
+                  </p>
                 </div>
 
-                <div className="space-y-4">
-                  {selectedResumeObj ? (
-                    <>
-                      {/* Issue 1 */}
-                      <div className="group flex items-start gap-4 p-4 rounded-lg bg-[#191c1e] border border-transparent hover:border-[#ffffff14] transition-all">
-                        <div className="w-10 h-10 rounded bg-[#ef4444]/10 flex-shrink-0 flex items-center justify-center text-[#ef4444]">
-                          <span className="material-symbols-outlined">error</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-white text-sm">Missing contact info: Phone Number</p>
-                          <p className="text-xs text-[#bfc7d4] mt-0.5">
-                            ATS systems prioritize candidates with complete reachable profiles. Add phone details to resume header.
-                          </p>
-                        </div>
-                        <button className="text-[#a0caff] text-xs font-bold hover:underline">Fix now</button>
-                      </div>
+                {/* Tabs selection (Options 1, 2, and 3) */}
+                <div className="flex border-b border-[#ffffff0a] gap-2 pb-px text-xs font-['Geist'] font-bold">
+                  <button
+                    onClick={() => setActiveSourceTab("existing")}
+                    className={`py-2.5 px-4 transition-all border-b-2 cursor-pointer ${
+                      activeSourceTab === "existing"
+                        ? "text-[#a0caff] border-[#2294f4]"
+                        : "text-[#bfc7d4] border-transparent hover:text-white"
+                    }`}
+                  >
+                    Use Existing Resume
+                  </button>
+                  <button
+                    onClick={() => setActiveSourceTab("upload")}
+                    className={`py-2.5 px-4 transition-all border-b-2 cursor-pointer ${
+                      activeSourceTab === "upload"
+                        ? "text-[#a0caff] border-[#2294f4]"
+                        : "text-[#bfc7d4] border-transparent hover:text-white"
+                    }`}
+                  >
+                    Upload Resume File
+                  </button>
+                  <button
+                    disabled
+                    className="py-2.5 px-4 border-b-2 border-transparent text-[#bfc7d4]/30 cursor-not-allowed flex items-center gap-1.5"
+                  >
+                    <span>Import LinkedIn</span>
+                    <span className="bg-[#bfc7d4]/10 text-[#bfc7d4]/60 text-[8px] uppercase px-1.5 py-0.5 rounded">
+                      Soon
+                    </span>
+                  </button>
+                </div>
 
-                      {/* Issue 2 */}
-                      <div className="group flex items-start gap-4 p-4 rounded-lg bg-[#191c1e] border border-transparent hover:border-[#ffffff14] transition-all">
-                        <div className="w-10 h-10 rounded bg-[#ef4444]/10 flex-shrink-0 flex items-center justify-center text-[#ef4444]">
-                          <span className="material-symbols-outlined">draft_orders</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-white text-sm">Generic file name: "v2_final.pdf"</p>
-                          <p className="text-xs text-[#bfc7d4] mt-0.5">
-                            Recommended pattern: "Firstname_Lastname_Title.pdf". Improves visibility & storage organization.
-                          </p>
-                        </div>
-                        <button className="text-[#a0caff] text-xs font-bold hover:underline">Rename</button>
-                      </div>
+                {/* Selected Tab Content */}
+                <div className="pt-2">
+                  {activeSourceTab === "existing" && (
+                    <SelectResume
+                      resumes={resumes}
+                      selectedResumeId={selectedResumeId}
+                      onSelect={setSelectedResumeId}
+                      onNext={() => setWizardState("step2")}
+                    />
+                  )}
 
-                      {/* Issue 3 */}
-                      <div className="group flex items-start gap-4 p-4 rounded-lg bg-[#191c1e] border border-transparent hover:border-[#ffffff14] transition-all">
-                        <div className="w-10 h-10 rounded bg-[#f59e0b]/10 flex-shrink-0 flex items-center justify-center text-[#f59e0b]">
-                          <span className="material-symbols-outlined">data_object</span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-white text-sm">Possible table detection in Work History</p>
-                          <p className="text-xs text-[#bfc7d4] mt-0.5">
-                            Some legacy ATS parsers fail to parse multi-column grid formatting. Ensure formatting is standard A4 layout.
-                          </p>
-                        </div>
-                        <button className="text-[#a0caff] text-xs font-bold hover:underline">View</button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-[#bfc7d4] py-8 text-center">
-                      Select or create a resume above to analyze performance.
-                    </p>
+                  {activeSourceTab === "upload" && (
+                    <ResumeUploader
+                      onUploadSuccess={(filename, textContent) =>
+                        setUploadedResume({ name: filename, content: textContent })
+                      }
+                      onNext={() => setWizardState("step2")}
+                    />
                   )}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Breakdown cards */}
-            <div className="space-y-6">
-              <h3 className="font-['Geist'] text-xl font-bold text-white">Detailed Category Breakdown</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Keywords */}
-                <div className="p-5 rounded-lg bg-[#1d2022] border border-[#ffffff14] flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <span className="material-symbols-outlined text-[#a0caff]">key</span>
-                    <span className="text-xs font-bold text-[#bfc7d4]">65%</span>
-                  </div>
+            {/* STATE 3: Step 2 Job Description Form */}
+            {wizardState === "step2" && (
+              <div className="bg-[#1d2022] border border-[#ffffff14] rounded-2xl p-8 space-y-6">
+                <div>
+                  <h2 className="font-['Geist'] text-xl font-bold text-white mb-1">
+                    Step 2: Compare against Role
+                  </h2>
+                  <p className="text-xs text-[#bfc7d4] opacity-75">
+                    Paste technical requirements to scan for keyword density overlap.
+                  </p>
+                </div>
+
+                <JobDescriptionForm
+                  jobDescription={jobDescription}
+                  onChange={setJobDescription}
+                  onAnalyze={handleStartAnalysis}
+                  onBack={() => setWizardState("step1")}
+                />
+              </div>
+            )}
+
+            {/* STATE 4: Loading Screen */}
+            {wizardState === "step3" && (
+              <AnalysisLoader onComplete={() => setWizardState("result")} />
+            )}
+
+            {/* STATE 5: Final Analytics Dashboard */}
+            {wizardState === "result" && analysisResult && (
+              <div className="space-y-8 animate-fade-in">
+                {/* Result Title Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h4 className="font-bold text-white text-sm font-['Geist']">Keywords & Skills</h4>
-                    <p className="text-[11px] text-[#bfc7d4] mt-1 leading-relaxed">
-                      Missing: "Agile", "User-Centric Design", "Stakeholder Management"
+                    <h2 className="font-['Geist'] text-2xl font-bold text-white">
+                      {analysisResult.resumeTitle}
+                    </h2>
+                    <p className="text-xs text-[#bfc7d4] font-medium font-['Inter'] mt-0.5">
+                      ATS Report for <span className="text-[#a0caff] font-semibold">{analysisResult.jobTitle || "Target Role"}</span>
                     </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleDownloadReport}
+                      className="bg-[#ffffff0d] hover:bg-[#ffffff14] border border-[#ffffff14] text-white px-4 py-2 rounded-lg text-xs font-bold font-['Geist'] flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">download</span>
+                      <span>Download Report</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleReset}
+                      className="bg-[#2294f4] text-[#002b4e] hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg text-xs font-bold font-['Geist'] flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">refresh</span>
+                      <span>Analyze Again</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Formatting */}
-                <div className="p-5 rounded-lg bg-[#1d2022] border border-[#ffffff14] flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <span className="material-symbols-outlined text-[#10b981]">grid_view</span>
-                    <span className="text-xs font-bold text-[#10b981]">92%</span>
+                {/* Score and breakdown metrics layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  <div className="lg:col-span-4 space-y-6">
+                    <ATSScoreCard score={analysisResult.overallScore} />
+                    <MissingKeywords keywords={analysisResult.missingKeywords} />
                   </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm font-['Geist']">Formatting & Layout</h4>
-                    <p className="text-[11px] text-[#bfc7d4] mt-1 leading-relaxed">
-                      Safe margins, structure, font weight and text scaling comply with parsing rules.
-                    </p>
+
+                  <div className="lg:col-span-8 space-y-6">
+                    <ScoreBreakdown
+                      keywordScore={analysisResult.keywordScore}
+                      formattingScore={analysisResult.formattingScore}
+                      skillsScore={analysisResult.skillsScore}
+                      experienceScore={analysisResult.experienceScore}
+                      educationScore={analysisResult.educationScore}
+                    />
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Strengths strengths={analysisResult.strengths} />
+                      <Suggestions suggestions={analysisResult.suggestions} />
+                    </div>
                   </div>
                 </div>
 
-                {/* Content Quality */}
-                <div className="p-5 rounded-lg bg-[#1d2022] border border-[#ffffff14] flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <span className="material-symbols-outlined text-[#f59e0b]">edit_note</span>
-                    <span className="text-xs font-bold text-[#bfc7d4]">81%</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm font-['Geist']">Content Quality</h4>
-                    <p className="text-[11px] text-[#bfc7d4] mt-1 leading-relaxed">
-                      Excellent usage of action verbs. Consider adding specific business metrics.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Hierarchy */}
-                <div className="p-5 rounded-lg bg-[#1d2022] border border-[#ffffff14] flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <span className="material-symbols-outlined text-[#1a91f0]">account_tree</span>
-                    <span className="text-xs font-bold text-[#10b981]">100%</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white text-sm font-['Geist']">Section Hierarchy</h4>
-                    <p className="text-[11px] text-[#bfc7d4] mt-1 leading-relaxed">
-                      Perfect header hierarchy. Contact, Work History, Education, and Skills tags map cleanly.
-                    </p>
-                  </div>
+                {/* Bottom Navigation */}
+                <div className="pt-6 border-t border-[#ffffff0a] flex justify-between">
+                  <button
+                    onClick={() => router.push("/dashboard")}
+                    className="bg-transparent border border-[#ffffff14] hover:bg-white/5 text-[#bfc7d4] hover:text-white px-6 py-2.5 rounded-lg text-xs font-bold font-['Geist'] transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">dashboard</span>
+                    <span>Return To Dashboard</span>
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Recommendations Banner */}
-            <div className="bg-[#2294f4]/5 border border-[#2294f4]/20 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
-              <div className="w-16 h-16 rounded-full bg-[#2294f4]/20 flex-shrink-0 flex items-center justify-center text-[#2294f4]">
-                <span className="material-symbols-outlined text-[32px] fill-icon" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  auto_fix_high
-                </span>
-              </div>
-              <div className="flex-1 text-center md:text-left">
-                <h4 className="font-['Geist'] text-lg font-bold text-white mb-1">Lens AI Optimization</h4>
-                <p className="text-xs text-[#bfc7d4] leading-relaxed">
-                  We've identified 12 minor improvements that can boost your score from 78% to 94%. Let our AI automatically rewrite your bullet points for maximum impact.
-                </p>
-              </div>
-              <button className="bg-[#2294f4] text-[#002b4e] font-['Geist'] text-xs font-bold px-6 py-3 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all whitespace-nowrap">
-                Optimize Now
-              </button>
-            </div>
+            )}
           </main>
         </div>
       </div>

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
 import Header from "@/components/navigation/Header";
 import { createResume } from "@/services/resume.service";
+import { useAuthStore } from "@/store/auth.store";
+import UpgradeModal from "@/components/ui/UpgradeModal";
 
 interface Template {
   id: string;
@@ -90,8 +92,20 @@ const templates: Template[] = [
 export default function TemplateGalleryPage() {
   const router = useRouter();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const fetchUser = useAuthStore((state) => state.fetchUser);
+
+  useEffect(() => {
+    fetchUser().catch(console.error);
+  }, [fetchUser]);
 
   const handleUseTemplate = async (templateId: string) => {
+    if (user && user.plan === "basic" && user.resumeCount >= 10) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     try {
       const newResume = await createResume({
         title: `My ${templateId.replace("-", " ")} Resume`,
@@ -99,12 +113,15 @@ export default function TemplateGalleryPage() {
         skills: "React, TypeScript, Next.js, CSS, Node.js",
         template: templateId,
       });
+      // Refresh user profile store (resumeCount changed)
+      await fetchUser().catch(console.error);
       router.push(`/resumes/${newResume.id}/edit`);
     } catch (err) {
       console.error("Failed to create resume from template", err);
       alert("Failed to initialize resume. Please try again.");
     }
   };
+
 
   return (
     <ProtectedRoute>
@@ -226,6 +243,12 @@ export default function TemplateGalleryPage() {
           </div>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </ProtectedRoute>
   );
 }
+

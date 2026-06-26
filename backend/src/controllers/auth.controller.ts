@@ -43,3 +43,59 @@ export const login = async (
     });
   }
 };
+
+type AuthenticatedRequest = Request & {
+  user?: {
+    userId: string;
+    email: string;
+  };
+};
+
+export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const profile = await authService.getProfile(req.user!.userId);
+    res.json(profile);
+  } catch (error) {
+    res.status(400).json({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const updated = await authService.updateProfile(req.user!.userId, req.body);
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const updatePassword = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.updatePassword(
+      req.user!.userId,
+      currentPassword,
+      newPassword
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({
+      message: (error as Error).message,
+    });
+  }
+};
+
+export const upgradePlan = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const upgraded = await authService.upgradePlan(req.user!.userId);
+    res.json(upgraded);
+  } catch (error) {
+    res.status(400).json({
+      message: (error as Error).message,
+    });
+  }
+};

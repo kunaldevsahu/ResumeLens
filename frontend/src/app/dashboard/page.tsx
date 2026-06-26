@@ -7,25 +7,56 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
 import Header from "@/components/navigation/Header";
 import { getResumes, type Resume } from "@/services/resume.service";
+import { useAuthStore } from "@/store/auth.store";
+import UpgradeModal from "@/components/ui/UpgradeModal";
 
 export default function Dashboard() {
   const router = useRouter();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
+  const user = useAuthStore((state) => state.user);
+  const fetchUser = useAuthStore((state) => state.fetchUser);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
-    const fetchResumes = async () => {
+    const fetchDashboardData = async () => {
       try {
         const data = await getResumes();
         setResumes(data);
+        await fetchUser();
       } catch (err) {
         console.error("Failed to load resumes on dashboard:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchResumes();
-  }, []);
+    fetchDashboardData();
+  }, [fetchUser]);
+
+  const uniqueTemplates = resumes.length > 0
+    ? new Set(resumes.map((r) => r.template || "modern-ats")).size
+    : 0;
+
+  const profileCompletion = (() => {
+    if (!user) return 30;
+    let score = 0;
+    if (user.name) score += 20;
+    if (user.email) score += 20;
+    if (user.phone) score += 20;
+    if (user.linkedin) score += 15;
+    if (user.github) score += 15;
+    if (user.profilePicture) score += 10;
+    return score;
+  })();
+
+  const handleCreateResumeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user && user.plan === "basic" && resumes.length >= 10) {
+      setShowUpgradeModal(true);
+    } else {
+      router.push("/resumes/new");
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -39,77 +70,131 @@ export default function Dashboard() {
 
           <main className="p-8 max-w-5xl w-full mx-auto space-y-8">
             {/* Welcome Section */}
-            <section>
-              <h2 className="font-['Geist'] text-3xl font-bold tracking-tight text-white mb-1">
-                Good morning, Alex.
-              </h2>
-              <p className="font-['Inter'] text-sm text-[#bfc7d4] opacity-75">
-                Your career progression is looking sharp. You have {resumes.length} active resume{resumes.length === 1 ? "" : "s"} in your dashboard.
-              </p>
+            <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-['Geist'] text-3xl font-bold tracking-tight text-white mb-1">
+                  Good morning, {user?.name || "Alex"}.
+                </h2>
+                <p className="font-['Inter'] text-sm text-[#bfc7d4] opacity-75">
+                  Your career progression is looking sharp. You have {resumes.length} active resume{resumes.length === 1 ? "" : "s"} in your dashboard.
+                </p>
+              </div>
+
+              {user?.plan === "basic" && (
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="bg-[#2294f4]/10 hover:bg-[#2294f4]/25 text-[#a0caff] border border-[#2294f4]/35 px-4 py-2 rounded-lg text-xs font-bold font-[#Geist] flex items-center gap-1.5 self-start md:self-auto transition-all"
+                >
+                  <span className="material-symbols-outlined text-[16px]">bolt</span>
+                  Upgrade to Pro
+                </button>
+              )}
             </section>
 
             {/* Stats Bento Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Total Resumes */}
-              <div className="bg-[#0b1c33] border border-[#ffffff14] p-6 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
+              <div className="bg-[#0b1c33] border border-[#ffffff14] p-5 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
                 <div className="flex justify-between items-start mb-4">
                   <span className="material-symbols-outlined text-[#a0caff] bg-[#2294f4]/10 p-3 rounded-lg">
                     description
                   </span>
-                  <span className="text-[#10b981] text-xs font-bold font-['Geist'] uppercase tracking-wider">
-                    Active sync
+                  <span className="text-[#10b981] text-[10px] font-bold font-['Geist'] uppercase tracking-wider">
+                    Synced
                   </span>
                 </div>
                 <div>
-                  <p className="font-['Geist'] text-xs text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
+                  <p className="font-['Geist'] text-[10px] text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
                     Total Resumes
                   </p>
-                  <h3 className="font-['Geist'] text-4xl font-bold text-white mt-1">
+                  <h3 className="font-['Geist'] text-3xl font-bold text-white mt-1">
                     {loading ? "..." : resumes.length}
                   </h3>
                 </div>
               </div>
 
-              {/* Last Updated */}
-              <div className="bg-[#0b1c33] border border-[#ffffff14] p-6 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
+              {/* Plan Type & Usage */}
+              <div className="bg-[#0b1c33] border border-[#ffffff14] p-5 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
                 <div className="flex justify-between items-start mb-4">
                   <span className="material-symbols-outlined text-[#ffb781] bg-[#dc7506]/10 p-3 rounded-lg">
-                    update
+                    workspace_premium
                   </span>
-                  <span className="text-[#bfc7d4]/50 text-xs font-bold font-['Geist']">
-                    Real-time
+                  <span className={`text-[10px] font-bold font-['Geist'] uppercase tracking-wider px-2 py-0.5 rounded ${user?.plan === "pro" ? "bg-[#2294f4]/20 text-[#a0caff]" : "bg-[#bfc7d4]/15 text-[#bfc7d4]"}`}>
+                    {user?.plan === "pro" ? "Pro" : "Basic"}
                   </span>
                 </div>
                 <div>
-                  <p className="font-['Geist'] text-xs text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
-                    Last Updated
+                  <p className="font-['Geist'] text-[10px] text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
+                    Subscription Usage
                   </p>
-                  <h3 className="font-['Geist'] text-xl font-bold text-white mt-3">
-                    {resumes.length > 0
-                      ? "2 hours ago"
-                      : "No resumes yet"}
+                  {user?.plan === "pro" ? (
+                    <div className="mt-1">
+                      <h3 className="font-['Geist'] text-lg font-bold text-white">Unlimited Usage</h3>
+                      <div className="w-full bg-[#191c1e] h-1.5 rounded-full mt-2">
+                        <div className="bg-[#a0caff] h-full rounded-full w-full"></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <h3 className="font-['Geist'] text-lg font-bold text-white">
+                        {resumes.length} of 10 used
+                      </h3>
+                      <div className="w-full bg-[#191c1e] h-1.5 rounded-full mt-2">
+                        <div
+                          className="bg-[#a0caff] h-full rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min((resumes.length / 10) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="mt-3 w-full bg-[#2294f4]/15 hover:bg-[#2294f4]/25 text-[#a0caff] border border-[#2294f4]/35 py-1 px-2 rounded-lg text-[10px] font-bold font-['Geist'] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">bolt</span>
+                        Upgrade to Pro
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Templates Used */}
+              <div className="bg-[#0b1c33] border border-[#ffffff14] p-5 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
+                <div className="flex justify-between items-start mb-4">
+                  <span className="material-symbols-outlined text-[#a0caff] bg-[#2294f4]/10 p-3 rounded-lg">
+                    style
+                  </span>
+                  <span className="text-[#bfc7d4]/50 text-[10px] font-bold font-['Geist'] uppercase">
+                    Templates
+                  </span>
+                </div>
+                <div>
+                  <p className="font-['Geist'] text-[10px] text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
+                    Templates Used
+                  </p>
+                  <h3 className="font-['Geist'] text-3xl font-bold text-white mt-1">
+                    {loading ? "..." : `${uniqueTemplates} / 8`}
                   </h3>
                 </div>
               </div>
 
               {/* Profile Completion */}
-              <div className="bg-[#0b1c33] border border-[#ffffff14] p-6 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
+              <div className="bg-[#0b1c33] border border-[#ffffff14] p-5 rounded-xl flex flex-col justify-between hover:border-[#404752] transition-colors duration-200 group">
                 <div className="flex justify-between items-start mb-4">
                   <span className="material-symbols-outlined text-[#2294f4] bg-[#2294f4]/10 p-3 rounded-lg">
                     analytics
                   </span>
-                  <span className="text-[#a0caff] text-xs font-bold font-['Geist'] uppercase tracking-wider">
-                    Great progress
+                  <span className="text-[#a0caff] text-[10px] font-bold font-['Geist'] uppercase tracking-wider">
+                    Progress
                   </span>
                 </div>
                 <div>
-                  <p className="font-['Geist'] text-xs text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
+                  <p className="font-['Geist'] text-[10px] text-[#bfc7d4]/60 uppercase tracking-widest font-bold">
                     Profile Completion
                   </p>
                   <div className="flex items-end gap-3 mt-1">
-                    <h3 className="font-['Geist'] text-3xl font-bold text-white">85%</h3>
-                    <div className="w-full bg-[#191c1e] h-2 rounded-full mb-3">
-                      <div className="bg-[#a0caff] h-full rounded-full" style={{ width: "85%" }}></div>
+                    <h3 className="font-['Geist'] text-2xl font-bold text-white">{profileCompletion}%</h3>
+                    <div className="w-full bg-[#191c1e] h-1.5 rounded-full mb-2">
+                      <div className="bg-[#a0caff] h-full rounded-full" style={{ width: `${profileCompletion}%` }}></div>
                     </div>
                   </div>
                 </div>
@@ -183,7 +268,7 @@ export default function Dashboard() {
                   <h4 className="font-['Geist'] text-xl font-semibold text-white mb-4">Quick Actions</h4>
                   <div className="space-y-3">
                     <button
-                      onClick={() => router.push("/resumes/new")}
+                      onClick={handleCreateResumeClick}
                       className="w-full flex items-center justify-between p-4 bg-[#0b1c33] border border-[#ffffff14] rounded-xl hover:border-[#a0caff] hover:bg-[#1d2022] transition-all group active:scale-[0.98]"
                     >
                       <div className="flex items-center gap-3">
@@ -253,6 +338,11 @@ export default function Dashboard() {
           </main>
         </div>
       </div>
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </ProtectedRoute>
   );
 }

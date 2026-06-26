@@ -13,14 +13,39 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  passwordHash  String
-  createdAt DateTime @default(now())
+  id                 String   @id @default(uuid())
+  name               String
+  email              String   @unique
+  passwordHash       String
+  phone              String?
+  linkedin           String?
+  github             String?
+  profilePicture     String?
+  plan               String   @default("basic") // "basic" | "pro"
+  subscriptionStatus String   @default("active") // "active" | "inactive"
+  createdAt          DateTime @default(now())
 
   resumes Resume[]
+  subscriptions Subscription[]
+  atsAnalyses AtsAnalysis[]
 }
+
+model Subscription {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  razorpayOrderId   String    @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  amount            Int
+  currency          String
+  paymentStatus     String    // "pending" | "completed" | "failed"
+  startDate         DateTime?
+  endDate           DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
 
 model Resume {
   id          String   @id @default(uuid())
@@ -37,4 +62,24 @@ model Resume {
 
   userId      String
   user        User @relation(fields: [userId], references: [id])
+}
+
+model AtsAnalysis {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  resumeId           String?
+  resumeTitle        String
+  jobTitle           String?
+  jobDescription     String
+  overallScore       Int
+  keywordScore       Int
+  formattingScore    Int
+  skillsScore        Int
+  experienceScore    Int
+  educationScore     Int
+  missingKeywords    Json     // array of strings
+  strengths          Json     // array of strings
+  suggestions        Json     // array of objects: { priority: String, message: String }
+  createdAt          DateTime @default(now())
 }

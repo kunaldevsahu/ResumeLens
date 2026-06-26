@@ -11,6 +11,22 @@ export class ResumeService {
     experience?: any,
     projects?: any
   ){
+    // SaaS Gating: check if user is on the basic plan and has reached the limit of 10 resumes
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true },
+    });
+
+    if (user && user.plan !== "pro") {
+      const count = await prisma.resume.count({
+        where: { userId },
+      });
+
+      if (count >= 10) {
+        throw new Error("You have reached your limit of 10 resumes on the Basic plan.");
+      }
+    }
+
     const resume = await prisma.resume.create({
       data: {
         userId,

@@ -7,6 +7,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
 import Header from "@/components/navigation/Header";
 import { getResumes, deleteResume, type Resume } from "@/services/resume.service";
+import { useAuthStore } from "@/store/auth.store";
+import UpgradeModal from "@/components/ui/UpgradeModal";
 
 export default function ResumesPage() {
   const router = useRouter();
@@ -14,6 +16,8 @@ export default function ResumesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const user = useAuthStore((state) => state.user);
 
   const loadResumes = async () => {
     try {
@@ -45,8 +49,19 @@ export default function ResumesPage() {
     try {
       await deleteResume(id);
       setResumes((prev) => prev.filter((r) => r.id !== id));
+      // Refresh user profile store (resumeCount changed)
+      useAuthStore.getState().fetchUser().catch(console.error);
     } catch (currentError) {
       alert(currentError instanceof Error ? currentError.message : "Failed to delete resume");
+    }
+  };
+
+  const handleCreateClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user && user.plan === "basic" && resumes.length >= 10) {
+      setShowUpgradeModal(true);
+    } else {
+      router.push("/resumes/new");
     }
   };
 
@@ -76,13 +91,13 @@ export default function ResumesPage() {
                 </p>
               </div>
 
-              <Link
-                href="/resumes/new"
-                className="bg-[#2294f4] text-[#002b4e] py-2.5 px-6 rounded-lg flex items-center gap-2 font-[#Geist] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all"
+              <button
+                onClick={handleCreateClick}
+                className="bg-[#2294f4] text-[#002b4e] py-2.5 px-6 rounded-lg flex items-center gap-2 font-[#Geist] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[20px]">add</span>
                 Create New
-              </Link>
+              </button>
             </div>
 
             {/* Toolbar search */}
@@ -183,6 +198,11 @@ export default function ResumesPage() {
           </main>
         </div>
       </div>
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </ProtectedRoute>
   );
 }
