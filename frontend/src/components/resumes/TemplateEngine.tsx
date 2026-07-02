@@ -16,6 +16,10 @@ interface PersonalInfo {
   jobTitle: string;
   location: string;
   website: string;
+  linkedin?: string;
+  github?: string;
+  codeforces?: string;
+  leetcode?: string;
 }
 
 interface ExperienceItem {
@@ -39,6 +43,24 @@ interface ProjectItem {
   name: string;
   tech: string;
   description: string;
+  githubUrl?: string;
+  demoUrl?: string;
+  dates?: string;
+  link?: string;
+}
+
+interface CertificationItem {
+  id: string;
+  name: string;
+  issuer: string;
+  dates: string;
+  link?: string;
+}
+
+interface ResumeSettings {
+  fontSize?: "sm" | "md" | "lg";
+  spacing?: "compact" | "normal" | "spacious";
+  sectionOrder?: string[];
 }
 
 interface TemplateEngineProps {
@@ -49,6 +71,8 @@ interface TemplateEngineProps {
   experience: ExperienceItem[];
   education: EducationItem[];
   projects: ProjectItem[];
+  certifications: CertificationItem[];
+  settings?: ResumeSettings;
 }
 
 export default function TemplateEngine({
@@ -59,6 +83,8 @@ export default function TemplateEngine({
   experience,
   education,
   projects,
+  certifications,
+  settings,
 }: TemplateEngineProps) {
   // Normalize template names to match the supported set
   const templateId = template?.toLowerCase() || "modern-ats";
@@ -73,6 +99,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "executive":
@@ -86,6 +114,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "two-column":
@@ -99,6 +129,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "developer":
@@ -111,6 +143,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "minimal":
@@ -122,6 +156,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "startup":
@@ -133,6 +169,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "creative":
@@ -144,6 +182,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
     case "modern-ats":
@@ -156,6 +196,8 @@ export default function TemplateEngine({
           experience={experience}
           education={education}
           projects={projects}
+          certifications={certifications}
+          settings={settings}
         />
       );
   }

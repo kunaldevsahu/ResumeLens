@@ -7,6 +7,10 @@ interface PersonalInfo {
   jobTitle: string;
   location: string;
   website: string;
+  linkedin?: string;
+  github?: string;
+  codeforces?: string;
+  leetcode?: string;
 }
 
 interface ExperienceItem {
@@ -30,6 +34,24 @@ interface ProjectItem {
   name: string;
   tech: string;
   description: string;
+  githubUrl?: string;
+  demoUrl?: string;
+  dates?: string;
+  link?: string;
+}
+
+interface CertificationItem {
+  id: string;
+  name: string;
+  issuer: string;
+  dates: string;
+  link?: string;
+}
+
+interface ResumeSettings {
+  fontSize?: "sm" | "md" | "lg";
+  spacing?: "compact" | "normal" | "spacious";
+  sectionOrder?: string[];
 }
 
 interface StartupTemplateProps {
@@ -39,6 +61,8 @@ interface StartupTemplateProps {
   experience: ExperienceItem[];
   education: EducationItem[];
   projects: ProjectItem[];
+  certifications: CertificationItem[];
+  settings?: ResumeSettings;
 }
 
 export default function StartupTemplate({
@@ -48,8 +72,75 @@ export default function StartupTemplate({
   experience,
   education,
   projects,
+  certifications,
+  settings,
 }: StartupTemplateProps) {
-  
+  const fontSize = settings?.fontSize || "md";
+  const spacing = settings?.spacing || "normal";
+  const sectionOrder = settings?.sectionOrder || ["summary", "education", "experience", "projects", "certifications", "skills"];
+
+  const sizeClasses = {
+    sm: {
+      name: "text-2xl",
+      title: "text-[10px]",
+      contactText: "text-[8.5px]",
+      sectionTitle: "text-[10px]",
+      body: "text-[9.5px]",
+      sub: "text-[8.5px]",
+    },
+    md: {
+      name: "text-3xl",
+      title: "text-xs",
+      contactText: "text-[10px]",
+      sectionTitle: "text-xs",
+      body: "text-[10.5px]",
+      sub: "text-[9.5px]",
+    },
+    lg: {
+      name: "text-4xl",
+      title: "text-sm",
+      contactText: "text-[11.5px]",
+      sectionTitle: "text-sm",
+      body: "text-[11.5px]",
+      sub: "text-[10px]",
+    },
+  }[fontSize];
+
+  const spacingClasses = {
+    compact: {
+      containerGap: "gap-2.5",
+      sectionGap: "space-y-1.5",
+      itemGap: "space-y-0.5",
+      paddingBottom: "pb-1",
+    },
+    normal: {
+      containerGap: "gap-5",
+      sectionGap: "space-y-3",
+      itemGap: "space-y-1",
+      paddingBottom: "pb-1.5",
+    },
+    spacious: {
+      containerGap: "gap-7",
+      sectionGap: "space-y-4",
+      itemGap: "space-y-2",
+      paddingBottom: "pb-2",
+    },
+  }[spacing];
+
+  const parseMarkdown = (text: string) => {
+    if (!text) return "";
+    let parsed = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    parsed = parsed.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    parsed = parsed.replace(/__(.*?)__/g, "<strong>$1</strong>");
+    parsed = parsed.replace(/\*(.*?)\*/g, "<em>$1</em>");
+    parsed = parsed.replace(/_(.*?)_/g, "<em>$1</em>");
+    parsed = parsed.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-semibold inline-flex items-center">$1</a>');
+    return parsed;
+  };
+
   const renderDescription = (desc: string) => {
     if (!desc) return null;
     const lines = desc.split("\n").map(l => l.trim()).filter(Boolean);
@@ -57,157 +148,309 @@ export default function StartupTemplate({
     
     if (isBulletList) {
       return (
-        <ul className="list-disc pl-4 mt-1.5 space-y-0.5 text-[10.5px] text-slate-600 leading-relaxed font-normal">
+        <ul className="list-disc pl-4 mt-1.5 space-y-0.5 leading-relaxed font-normal text-slate-600" style={{ fontSize: sizeClasses.body }}>
           {lines.map((line, idx) => {
             const cleanLine = line.replace(/^[•\-\*\s]+/, "");
-            return <li key={idx}>{cleanLine}</li>;
+            return (
+              <li 
+                key={idx} 
+                dangerouslySetInnerHTML={{ __html: parseMarkdown(cleanLine) }}
+              />
+            );
           })}
         </ul>
       );
     }
     
-    return <p className="text-[10.5px] leading-relaxed text-slate-600 whitespace-pre-wrap mt-1.5 font-normal">{desc}</p>;
+    return (
+      <p 
+        className="leading-relaxed text-slate-600 whitespace-pre-wrap mt-1.5 font-normal" 
+        style={{ fontSize: sizeClasses.body }}
+        dangerouslySetInnerHTML={{ __html: parseMarkdown(desc).replace(/\n/g, "<br />") }}
+      />
+    );
+  };
+
+  const renderSection = (sectionId: string) => {
+    switch (sectionId) {
+      case "summary":
+        return summary && (
+          <section key="summary" className={spacingClasses.sectionGap}>
+            <h2 className={`${sizeClasses.sectionTitle} font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-800 ${spacingClasses.paddingBottom} flex items-center gap-1.5`}>
+              <span className="material-symbols-outlined text-sm text-slate-700 leading-none">person</span>
+              About
+            </h2>
+            <p 
+              className={`${sizeClasses.body} leading-relaxed text-slate-700 font-normal`}
+              dangerouslySetInnerHTML={{ __html: parseMarkdown(summary).replace(/\n/g, "<br />") }}
+            />
+          </section>
+        );
+      case "experience":
+        return experience.length > 0 && (
+          <section key="experience" className={spacingClasses.sectionGap}>
+            <h2 className={`${sizeClasses.sectionTitle} font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-800 ${spacingClasses.paddingBottom} flex items-center gap-1.5`}>
+              <span className="material-symbols-outlined text-sm text-slate-700 leading-none">work</span>
+              Experience
+            </h2>
+            <div className={spacingClasses.containerGap === "gap-2.5" ? "space-y-3" : "space-y-4"}>
+              {experience.map((exp) => (
+                <div key={exp.id} className="grid grid-cols-12 gap-4">
+                  <div className={`${sizeClasses.sub} col-span-3 font-bold text-slate-500 uppercase tracking-wider pt-0.5`}>
+                    {exp.dates}
+                  </div>
+                  <div className={`col-span-9 ${spacingClasses.itemGap}`}>
+                    <h3 className={`font-bold text-slate-900`} style={{ fontSize: sizeClasses.body }}>
+                      {exp.role} {exp.company && <span className="font-normal text-slate-500">at {exp.company}</span>}
+                    </h3>
+                    {renderDescription(exp.description)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      case "projects":
+        return projects.length > 0 && (
+          <section key="projects" className={spacingClasses.sectionGap}>
+            <h2 className={`${sizeClasses.sectionTitle} font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-800 ${spacingClasses.paddingBottom} flex items-center gap-1.5`}>
+              <span className="material-symbols-outlined text-sm text-slate-700 leading-none">folder_open</span>
+              Projects
+            </h2>
+            <div className={spacingClasses.containerGap === "gap-2.5" ? "space-y-2.5" : "space-y-3"}>
+              {projects.map((proj) => {
+                const links = [];
+                if (proj.githubUrl) {
+                  links.push(
+                    <a key="gh" href={proj.githubUrl.startsWith("http") ? proj.githubUrl : `https://${proj.githubUrl}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">
+                      GitHub
+                    </a>
+                  );
+                }
+                if (proj.demoUrl) {
+                  links.push(
+                    <a key="demo" href={proj.demoUrl.startsWith("http") ? proj.demoUrl : `https://${proj.demoUrl}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">
+                      Demo
+                    </a>
+                  );
+                }
+
+                return (
+                  <div key={proj.id} className={spacingClasses.itemGap}>
+                    <div className="flex justify-between items-baseline">
+                      <h3 className={`font-bold text-slate-900 flex items-center gap-1.5`} style={{ fontSize: sizeClasses.body }}>
+                        {proj.name}
+                        {links.length > 0 && (
+                          <span className="font-normal text-slate-400 text-[9px] flex items-center gap-1">
+                            ({links.map((link, i) => (
+                              <span key={i} className="flex items-center gap-1">
+                                {link}
+                                {i < links.length - 1 && <span className="text-slate-300">|</span>}
+                              </span>
+                            ))})
+                          </span>
+                        )}
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        {proj.tech && (
+                          <span className="font-bold text-slate-500 uppercase tracking-wider font-mono" style={{ fontSize: sizeClasses.sub }}>
+                            {proj.tech}
+                          </span>
+                        )}
+                        {proj.dates && (
+                          <span className="font-bold text-slate-500 uppercase tracking-wider" style={{ fontSize: sizeClasses.sub }}>
+                            {proj.dates}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {renderDescription(proj.description)}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      case "skills":
+        return skills && (
+          <section key="skills" className={spacingClasses.sectionGap}>
+            <h2 className={`${sizeClasses.sectionTitle} font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-800 ${spacingClasses.paddingBottom} flex items-center gap-1.5`}>
+              <span className="material-symbols-outlined text-sm text-slate-700 leading-none">integration_instructions</span>
+              Skills & Technologies
+            </h2>
+            <div>
+              <h4 className="font-bold text-slate-800 uppercase tracking-wider font-sans mb-2" style={{ fontSize: sizeClasses.sub }}>Core Tech Stack</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-medium font-sans" style={{ fontSize: sizeClasses.body }}>
+                {skills.split(",").map((s, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-100 px-2 py-1 rounded text-center">
+                    {s.trim()}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      case "education":
+        return education.length > 0 && (
+          <section key="education" className={spacingClasses.sectionGap}>
+            <h2 className={`${sizeClasses.sectionTitle} font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-800 ${spacingClasses.paddingBottom} flex items-center gap-1.5`}>
+              <span className="material-symbols-outlined text-sm text-slate-700 leading-none">school</span>
+              Education
+            </h2>
+            <div className={spacingClasses.containerGap === "gap-2.5" ? "space-y-2.5" : "space-y-3"}>
+              {education.map((edu) => (
+                <div key={edu.id} className="grid grid-cols-12 gap-4" style={{ fontSize: sizeClasses.body }}>
+                  <div className={`col-span-3 font-semibold text-slate-500 uppercase tracking-wider pt-0.5`} style={{ fontSize: sizeClasses.sub }}>
+                    {edu.dates}
+                  </div>
+                  <div className={`col-span-9 ${spacingClasses.itemGap}`}>
+                    <h3 className="font-bold text-slate-900">{edu.school}</h3>
+                    <div className="flex justify-between text-slate-600" style={{ fontSize: sizeClasses.sub }}>
+                      <span className="italic">{edu.degree}</span>
+                      {edu.gpa && <span>Grade: {edu.gpa}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      case "certifications":
+        return certifications && certifications.length > 0 && (
+          <section key="certifications" className={spacingClasses.sectionGap}>
+            <h2 className={`${sizeClasses.sectionTitle} font-bold uppercase tracking-wider text-slate-800 border-b-2 border-slate-800 ${spacingClasses.paddingBottom} flex items-center gap-1.5`}>
+              <span className="material-symbols-outlined text-sm text-slate-700 leading-none">workspace_premium</span>
+              Certifications
+            </h2>
+            <div className={spacingClasses.containerGap === "gap-2.5" ? "space-y-2.5" : "space-y-3"}>
+              {certifications.map((cert) => (
+                <div key={cert.id} className="grid grid-cols-12 gap-4" style={{ fontSize: sizeClasses.body }}>
+                  <div className={`col-span-3 font-semibold text-slate-500 uppercase tracking-wider pt-0.5`} style={{ fontSize: sizeClasses.sub }}>
+                    {cert.dates}
+                  </div>
+                  <div className={`col-span-9 ${spacingClasses.itemGap}`}>
+                    <h3 className="font-bold text-slate-900">
+                      {cert.name}
+                      {cert.link && (
+                        <span className="font-normal text-slate-400 text-[9px] ml-1.5">
+                          ( <a href={cert.link.startsWith("http") ? cert.link : `https://${cert.link}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-blue-600">Link</a> )
+                        </span>
+                      )}
+                    </h3>
+                    {cert.issuer && (
+                      <div className="text-slate-600" style={{ fontSize: sizeClasses.sub }}>
+                        <span className="italic">{cert.issuer}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className="font-['Geist'] flex flex-col gap-5 w-full text-left bg-white text-slate-800 px-4 py-2">
-      {/* Header */}
-      <header className="flex flex-col gap-2 border-b-2 border-slate-100 pb-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div className={`font-serif flex flex-col ${spacingClasses.containerGap} w-full text-left bg-white text-slate-800 px-6 py-6 min-h-[842px]`}>
+      {/* Header (Asymmetric Split) */}
+      <header className="grid grid-cols-12 gap-4 border-b-2 border-slate-800 pb-4">
+        {/* Left Side: Name and Table of Details */}
+        <div className="col-span-8 flex flex-col justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className={`${sizeClasses.name} font-extrabold text-slate-900 tracking-tight mb-0.5`}>
               {personalInfo.name || "Untitled Name"}
             </h1>
-            <p className="text-xs font-bold text-[#4f46e5] tracking-wider uppercase mt-0.5">
+            <p className={`${sizeClasses.title} font-bold text-slate-500 uppercase tracking-wider`}>
               {personalInfo.jobTitle || "Job Title"}
             </p>
           </div>
-          
-          {/* Accent-colored Contact details block */}
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 mt-2 sm:mt-0 font-medium">
-            {personalInfo.location && (
-              <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                {personalInfo.location}
-              </span>
-            )}
-            {personalInfo.email && (
-              <a href={`mailto:${personalInfo.email}`} className="flex items-center gap-1 hover:text-[#4f46e5] hover:underline bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                {personalInfo.email}
-              </a>
-            )}
-            {personalInfo.phone && (
-              <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                {personalInfo.phone}
-              </span>
-            )}
-            {personalInfo.website && (
-              <a href={`https://${personalInfo.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-[#4f46e5] hover:underline bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                {personalInfo.website}
-              </a>
-            )}
+
+          <table className="mt-3 text-slate-600 font-sans border-collapse" style={{ fontSize: sizeClasses.contactText }}>
+            <tbody>
+              {personalInfo.email && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>Email:</td>
+                  <td className="py-0.5"><a href={`mailto:${personalInfo.email}`} className="hover:underline">{personalInfo.email}</a></td>
+                </tr>
+              )}
+              {personalInfo.phone && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>Phone:</td>
+                  <td className="py-0.5">{personalInfo.phone}</td>
+                </tr>
+              )}
+              {personalInfo.location && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>Location:</td>
+                  <td className="py-0.5">{personalInfo.location}</td>
+                </tr>
+              )}
+              {personalInfo.website && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>Website:</td>
+                  <td className="py-0.5"><a href={`https://${personalInfo.website}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{personalInfo.website}</a></td>
+                </tr>
+              )}
+              {personalInfo.linkedin && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>LinkedIn:</td>
+                  <td className="py-0.5">
+                    <a href={personalInfo.linkedin.startsWith("http") ? personalInfo.linkedin : `https://${personalInfo.linkedin}`} target="_blank" rel="noopener noreferrer" className="hover:underline font-medium">
+                      {personalInfo.linkedin.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/in\//, "").replace(/\/$/, "")}
+                    </a>
+                  </td>
+                </tr>
+              )}
+              {personalInfo.github && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>GitHub:</td>
+                  <td className="py-0.5">
+                    <a href={personalInfo.github.startsWith("http") ? personalInfo.github : `https://${personalInfo.github}`} target="_blank" rel="noopener noreferrer" className="hover:underline font-medium">
+                      {personalInfo.github.replace(/^(https?:\/\/)?(www\.)?github\.com\//, "").replace(/\/$/, "")}
+                    </a>
+                  </td>
+                </tr>
+              )}
+              {personalInfo.leetcode && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>LeetCode:</td>
+                  <td className="py-0.5">
+                    <a href={personalInfo.leetcode.startsWith("http") ? personalInfo.leetcode : `https://${personalInfo.leetcode}`} target="_blank" rel="noopener noreferrer" className="hover:underline font-medium font-sans">
+                      {personalInfo.leetcode.replace(/^(https?:\/\/)?(www\.)?leetcode\.com\/u\//, "").replace(/\/$/, "")}
+                    </a>
+                  </td>
+                </tr>
+              )}
+              {personalInfo.codeforces && (
+                <tr>
+                  <td className="font-bold pr-2 py-0.5 text-slate-800 uppercase tracking-wider text-[8.5px]" style={{ fontSize: sizeClasses.sub }}>Codeforces:</td>
+                  <td className="py-0.5">
+                    <a href={personalInfo.codeforces.startsWith("http") ? personalInfo.codeforces : `https://${personalInfo.codeforces}`} target="_blank" rel="noopener noreferrer" className="hover:underline font-medium font-sans">
+                      {personalInfo.codeforces.replace(/^(https?:\/\/)?(www\.)?codeforces\.com\/profile\//, "").replace(/\/$/, "")}
+                    </a>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Right Side: Profile Photo Placeholder */}
+        <div className="col-span-4 flex justify-end items-start">
+          <div className="w-20 h-24 border border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-center p-1 rounded shrink-0">
+            <svg className="w-6 h-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+            <span className="text-[7.5px] text-slate-400 font-sans mt-1">Photo</span>
           </div>
         </div>
       </header>
 
-      {/* Summary */}
-      {summary && (
-        <section className="space-y-1">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            About
-          </h2>
-          <p className="text-[10.5px] leading-relaxed text-slate-700 font-normal">{summary}</p>
-        </section>
-      )}
-
-      {/* Work History */}
-      {experience.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Experience
-          </h2>
-          <div className="space-y-4">
-            {experience.map((exp) => (
-              <div key={exp.id} className="space-y-0.5">
-                <div className="flex justify-between items-baseline">
-                  <h3 className="font-bold text-[10.5px] text-slate-900">
-                    {exp.role} <span className="text-[#4f46e5]">@ {exp.company}</span>
-                  </h3>
-                  <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider">
-                    {exp.dates}
-                  </span>
-                </div>
-                {renderDescription(exp.description)}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Projects */}
-      {projects.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Projects
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {projects.map((proj) => (
-              <div key={proj.id} className="border border-slate-100 hover:border-slate-200 p-3 rounded-lg transition-colors bg-slate-50/50 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="font-bold text-[10.5px] text-slate-900 leading-tight">{proj.name}</h3>
-                  </div>
-                  {renderDescription(proj.description)}
-                </div>
-                {proj.tech && (
-                  <div className="mt-2 text-[8px] font-bold text-[#4f46e5] uppercase tracking-wider font-mono">
-                    {proj.tech}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Skills & Education Stack */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-slate-100">
-        {skills && (
-          <section className="space-y-2">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Tech Stack
-            </h2>
-            <div className="flex flex-wrap gap-1.5">
-              {skills.split(",").map((s, idx) => (
-                <span key={idx} className="bg-indigo-50 border border-indigo-100/50 text-[#4f46e5] text-[8.5px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
-                  {s.trim()}
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {education.length > 0 && (
-          <section className="space-y-2">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Education
-            </h2>
-            <div className="space-y-3">
-              {education.map((edu) => (
-                <div key={edu.id} className="space-y-0.5">
-                  <div className="flex justify-between items-baseline">
-                    <h3 className="font-bold text-[10px] text-slate-900">{edu.school}</h3>
-                    <span className="text-[8px] font-bold text-slate-400">{edu.dates}</span>
-                  </div>
-                  <div className="flex justify-between text-[9px] text-slate-500">
-                    <span className="italic">{edu.degree}</span>
-                    {edu.gpa && <span>GPA: {edu.gpa}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      {/* Render sections in custom order */}
+      {sectionOrder.map((sectionId) => renderSection(sectionId))}
     </div>
   );
 }

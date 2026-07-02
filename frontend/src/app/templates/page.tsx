@@ -26,7 +26,7 @@ const templates: Template[] = [
     name: "Modern ATS",
     category: "ATS Friendly",
     description: "Highly structured, clean sans-serif layout optimized for Applicant Tracking Systems.",
-    image: "/templates/modern-ats-preview.png",
+    image: "/templates/modern-ats.webp",
     atsCompatible: true,
   },
   {
@@ -34,7 +34,7 @@ const templates: Template[] = [
     name: "Corporate",
     category: "Professional",
     description: "Sleek sans-serif layout with top color accent bands and left-bordered headers.",
-    image: "/templates/corporate-preview.png",
+    image: "/templates/corporate.webp",
     atsCompatible: true,
   },
   {
@@ -42,7 +42,7 @@ const templates: Template[] = [
     name: "Executive",
     category: "Professional",
     description: "Classic centered layout with elegant serif typography, perfect for executive roles.",
-    image: "/templates/executive-preview.png",
+    image: "/templates/executive.webp",
     atsCompatible: true,
   },
   {
@@ -50,7 +50,7 @@ const templates: Template[] = [
     name: "Professional Two Column",
     category: "Professional",
     description: "Asymmetrical grid split layout featuring side-by-side content panels.",
-    image: "/templates/twocolumn-preview.png",
+    image: "/templates/two-column.webp",
     atsCompatible: true,
   },
   {
@@ -58,7 +58,7 @@ const templates: Template[] = [
     name: "Developer",
     category: "Creative",
     description: "Monospace font with custom command-line styling designed for programmers and tech roles.",
-    image: "/templates/developer-preview.png",
+    image: "/templates/developer.webp",
     atsCompatible: false,
     badgeText: "Developer Focus",
   },
@@ -67,7 +67,7 @@ const templates: Template[] = [
     name: "Minimal",
     category: "ATS Friendly",
     description: "Spacious layout with faint divider lines, standard-case headers, and clean margins.",
-    image: "/templates/minimal-preview.png",
+    image: "/templates/minimal.jpeg",
     atsCompatible: true,
   },
   {
@@ -75,7 +75,7 @@ const templates: Template[] = [
     name: "Startup",
     category: "Creative",
     description: "Modern punchy layout featuring tag capsules for skills and custom tech stacks.",
-    image: "/templates/startup-preview.png",
+    image: "/templates/startup.webp",
     atsCompatible: true,
   },
   {
@@ -83,7 +83,7 @@ const templates: Template[] = [
     name: "Creative",
     category: "Creative",
     description: "Artistic off-white template with Playfair headers, warm backgrounds, and terracota accents.",
-    image: "/templates/creative-preview.png",
+    image: "/templates/creative.webp",
     atsCompatible: false,
     badgeText: "Design Focus",
   },

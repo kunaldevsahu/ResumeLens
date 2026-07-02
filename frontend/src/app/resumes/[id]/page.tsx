@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { getResumeById, updateResume, deleteResume, type Resume } from "@/services/resume.service";
+import { getResumeById, updateResume, type Resume } from "@/services/resume.service";
 import TemplateEngine from "@/components/resumes/TemplateEngine";
 import TemplateSwitcher from "@/components/resumes/TemplateSwitcher";
 
@@ -15,6 +15,10 @@ interface PersonalInfo {
   jobTitle: string;
   location: string;
   website: string;
+  linkedin?: string;
+  github?: string;
+  leetcode?: string;
+  codeforces?: string;
 }
 
 interface ExperienceItem {
@@ -38,6 +42,24 @@ interface ProjectItem {
   name: string;
   tech: string;
   description: string;
+  githubUrl?: string;
+  demoUrl?: string;
+  dates?: string;
+  link?: string;
+}
+
+interface CertificationItem {
+  id: string;
+  name: string;
+  issuer: string;
+  dates: string;
+  link?: string;
+}
+
+interface ResumeSettings {
+  fontSize?: "sm" | "md" | "lg";
+  spacing?: "compact" | "normal" | "spacious";
+  sectionOrder?: string[];
 }
 
 export default function ResumeDetailPage() {
@@ -66,6 +88,12 @@ export default function ResumeDetailPage() {
   const [experience, setExperience] = useState<ExperienceItem[]>([]);
   const [education, setEducation] = useState<EducationItem[]>([]);
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [certifications, setCertifications] = useState<CertificationItem[]>([]);
+  const [settings, setSettings] = useState<ResumeSettings>({
+    fontSize: "md",
+    spacing: "normal",
+    sectionOrder: ["summary", "education", "experience", "projects", "certifications", "skills"],
+  });
 
   useEffect(() => {
     const loadResume = async () => {
@@ -83,16 +111,31 @@ export default function ResumeDetailPage() {
           const expData = typeof data.experience === "string" ? JSON.parse(data.experience) : data.experience;
           if (expData.personalInfo) setPersonalInfo(expData.personalInfo);
           if (expData.items) setExperience(expData.items);
+          if (expData.settings) setSettings(expData.settings);
         }
 
         if (data.education) {
           const eduData = typeof data.education === "string" ? JSON.parse(data.education) : data.education;
           if (eduData.items) setEducation(eduData.items);
+          if (eduData.certifications) {
+            setCertifications(eduData.certifications);
+          } else {
+            setCertifications([]);
+          }
         }
 
         if (data.projects) {
           const projData = typeof data.projects === "string" ? JSON.parse(data.projects) : data.projects;
-          if (projData.items) setProjects(projData.items);
+          if (projData.items) {
+            // Map legacy projects link -> githubUrl
+            const mapped = projData.items.map((p: any) => ({
+              ...p,
+              githubUrl: p.githubUrl || p.link || "",
+              demoUrl: p.demoUrl || "",
+              dates: p.dates || "",
+            }));
+            setProjects(mapped);
+          }
           if (!data.template && projData.template) setTemplate(projData.template);
         }
       } catch (currentError) {
@@ -198,6 +241,8 @@ export default function ResumeDetailPage() {
               experience={experience}
               education={education}
               projects={projects}
+              certifications={certifications}
+              settings={settings}
             />
           </div>
         </main>

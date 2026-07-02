@@ -17,6 +17,10 @@ export interface ResumeBuilderState {
     jobTitle: string;
     location: string;
     website: string;
+    linkedin?: string;
+    github?: string;
+    codeforces?: string;
+    leetcode?: string;
   };
   experience: Array<{
     id: string;
@@ -37,7 +41,23 @@ export interface ResumeBuilderState {
     name: string;
     tech: string;
     description: string;
+    githubUrl?: string;
+    demoUrl?: string;
+    dates?: string;
+    link?: string; // Kept for backwards compatibility
   }>;
+  certifications: Array<{
+    id: string;
+    name: string;
+    issuer: string;
+    dates: string;
+    link?: string;
+  }>;
+  settings?: {
+    fontSize?: "sm" | "md" | "lg";
+    spacing?: "compact" | "normal" | "spacious";
+    sectionOrder?: string[];
+  };
 }
 
 export const defaultResumeBuilderState: ResumeBuilderState = {
@@ -52,10 +72,20 @@ export const defaultResumeBuilderState: ResumeBuilderState = {
     jobTitle: "",
     location: "",
     website: "",
+    linkedin: "",
+    github: "",
+    codeforces: "",
+    leetcode: "",
   },
   experience: [],
   education: [],
   projects: [],
+  certifications: [],
+  settings: {
+    fontSize: "md",
+    spacing: "normal",
+    sectionOrder: ["summary", "education", "experience", "projects", "certifications", "skills"],
+  },
 };
 
 export function resumeStateToPayload(state: ResumeBuilderState) {
@@ -67,9 +97,15 @@ export function resumeStateToPayload(state: ResumeBuilderState) {
     experience: {
       personalInfo: state.personalInfo,
       items: state.experience,
+      settings: state.settings || {
+        fontSize: "md",
+        spacing: "normal",
+        sectionOrder: ["summary", "education", "experience", "projects", "certifications", "skills"],
+      },
     },
     education: {
       items: state.education,
+      certifications: state.certifications || [],
     },
     projects: {
       items: state.projects,
@@ -85,24 +121,55 @@ export function resumeToBuilderState(resume: any): ResumeBuilderState {
     jobTitle: "",
     location: "",
     website: "",
+    linkedin: "",
+    github: "",
+    codeforces: "",
+    leetcode: "",
   };
   let experienceItems = [];
+  let settings = {
+    fontSize: "md" as const,
+    spacing: "normal" as const,
+    sectionOrder: ["summary", "education", "experience", "projects", "certifications", "skills"],
+  };
+
   if (resume.experience) {
     const exp = typeof resume.experience === "string" ? JSON.parse(resume.experience) : resume.experience;
     if (exp.personalInfo) personalInfo = { ...personalInfo, ...exp.personalInfo };
     if (exp.items) experienceItems = exp.items;
+    if (exp.settings) {
+      settings = { ...settings, ...exp.settings };
+      // Ensure "certifications" is in sectionOrder for backwards compatibility
+      if (settings.sectionOrder && !settings.sectionOrder.includes("certifications")) {
+        const eduIdx = settings.sectionOrder.indexOf("education");
+        if (eduIdx !== -1) {
+          settings.sectionOrder.splice(eduIdx + 1, 0, "certifications");
+        } else {
+          settings.sectionOrder.push("certifications");
+        }
+      }
+    }
   }
 
   let educationItems = [];
+  let certificationItems = [];
   if (resume.education) {
     const edu = typeof resume.education === "string" ? JSON.parse(resume.education) : resume.education;
     if (edu.items) educationItems = edu.items;
+    if (edu.certifications) certificationItems = edu.certifications;
   }
 
   let projectItems = [];
   if (resume.projects) {
     const proj = typeof resume.projects === "string" ? JSON.parse(resume.projects) : resume.projects;
-    if (proj.items) projectItems = proj.items;
+    if (proj.items) {
+      projectItems = proj.items.map((p: any) => ({
+        ...p,
+        githubUrl: p.githubUrl || (p.link ? p.link : ""),
+        demoUrl: p.demoUrl || "",
+        dates: p.dates || "",
+      }));
+    }
   }
 
   return {
@@ -114,6 +181,8 @@ export function resumeToBuilderState(resume: any): ResumeBuilderState {
     experience: experienceItems,
     education: educationItems,
     projects: projectItems,
+    certifications: certificationItems,
+    settings,
   };
 }
 
@@ -126,7 +195,7 @@ interface ResumeBuilderWorkspaceProps {
   onSave: () => void;
 }
 
-type TabType = "basics" | "experience" | "education" | "projects";
+type TabType = "basics" | "experience" | "education" | "projects" | "certifications";
 
 export default function ResumeBuilderWorkspace({
   mode,
@@ -228,6 +297,9 @@ export default function ResumeBuilderWorkspace({
       name: "",
       tech: "",
       description: "",
+      githubUrl: "",
+      demoUrl: "",
+      dates: "",
     };
     onChange({
       ...value,
@@ -251,9 +323,62 @@ export default function ResumeBuilderWorkspace({
     });
   };
 
+  // Certification handlers
+  const addCertification = () => {
+    const newItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: "",
+      issuer: "",
+      dates: "",
+      link: "",
+    };
+    onChange({
+      ...value,
+      certifications: [...(value.certifications || []), newItem],
+    });
+  };
+
+  const updateCertification = (id: string, field: string, val: string) => {
+    onChange({
+      ...value,
+      certifications: (value.certifications || []).map((item) =>
+        item.id === id ? { ...item, [field]: val } : item
+      ),
+    });
+  };
+
+  const deleteCertification = (id: string) => {
+    onChange({
+      ...value,
+      certifications: (value.certifications || []).filter((item) => item.id !== id),
+    });
+  };
+
   // Template switch handler
   const handleSelectTemplate = (templateId: string) => {
     onChange({ ...value, template: templateId });
+  };
+
+  const handleSettingChange = (field: string, val: any) => {
+    onChange({
+      ...value,
+      settings: {
+        ...value.settings,
+        [field]: val,
+      },
+    });
+  };
+
+  const moveSection = (idx: number, direction: "up" | "down") => {
+    const order = [...(value.settings?.sectionOrder || ["summary", "experience", "projects", "skills", "education"])];
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= order.length) return;
+    
+    const temp = order[idx];
+    order[idx] = order[targetIdx];
+    order[targetIdx] = temp;
+    
+    handleSettingChange("sectionOrder", order);
   };
 
   return (
@@ -329,10 +454,10 @@ export default function ResumeBuilderWorkspace({
         {/* Left Side: Editor Form Panel */}
         <div className="w-full md:w-[480px] lg:w-[540px] border-r border-[#ffffff14] bg-[#111415] flex flex-col shrink-0">
           {/* Section Navigation Tabs */}
-          <div className="flex border-b border-[#ffffff14] text-xs">
+          <div className="flex border-b border-[#ffffff14] text-xs overflow-x-auto shrink-0 custom-scrollbar">
             <button
               onClick={() => setActiveTab("basics")}
-              className={`flex-1 py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
+              className={`flex-1 min-w-[75px] py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
                 activeTab === "basics"
                   ? "border-[#2294f4] text-[#2294f4]"
                   : "border-transparent text-[#bfc7d4] hover:text-white"
@@ -342,7 +467,7 @@ export default function ResumeBuilderWorkspace({
             </button>
             <button
               onClick={() => setActiveTab("experience")}
-              className={`flex-1 py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
+              className={`flex-1 min-w-[90px] py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
                 activeTab === "experience"
                   ? "border-[#2294f4] text-[#2294f4]"
                   : "border-transparent text-[#bfc7d4] hover:text-white"
@@ -352,7 +477,7 @@ export default function ResumeBuilderWorkspace({
             </button>
             <button
               onClick={() => setActiveTab("education")}
-              className={`flex-1 py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
+              className={`flex-1 min-w-[90px] py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
                 activeTab === "education"
                   ? "border-[#2294f4] text-[#2294f4]"
                   : "border-transparent text-[#bfc7d4] hover:text-white"
@@ -362,13 +487,23 @@ export default function ResumeBuilderWorkspace({
             </button>
             <button
               onClick={() => setActiveTab("projects")}
-              className={`flex-1 py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
+              className={`flex-1 min-w-[85px] py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
                 activeTab === "projects"
                   ? "border-[#2294f4] text-[#2294f4]"
                   : "border-transparent text-[#bfc7d4] hover:text-white"
               }`}
             >
               Projects
+            </button>
+            <button
+              onClick={() => setActiveTab("certifications")}
+              className={`flex-1 min-w-[105px] py-3 text-center font-bold tracking-wide border-b-2 transition-all ${
+                activeTab === "certifications"
+                  ? "border-[#2294f4] text-[#2294f4]"
+                  : "border-transparent text-[#bfc7d4] hover:text-white"
+              }`}
+            >
+              Certifications
             </button>
           </div>
 
@@ -445,6 +580,50 @@ export default function ResumeBuilderWorkspace({
                       className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-2.5 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
                     />
                   </div>
+                  
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">LinkedIn Profile</label>
+                    <input
+                      type="text"
+                      value={value.personalInfo.linkedin || ""}
+                      onChange={(e) => handlePersonalInfoChange("linkedin", e.target.value)}
+                      placeholder="linkedin.com/in/alex"
+                      className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-2.5 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                    />
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">GitHub Profile</label>
+                    <input
+                      type="text"
+                      value={value.personalInfo.github || ""}
+                      onChange={(e) => handlePersonalInfoChange("github", e.target.value)}
+                      placeholder="github.com/alex"
+                      className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-2.5 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                    />
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">LeetCode Handle</label>
+                    <input
+                      type="text"
+                      value={value.personalInfo.leetcode || ""}
+                      onChange={(e) => handlePersonalInfoChange("leetcode", e.target.value)}
+                      placeholder="leetcode.com/u/alex"
+                      className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-2.5 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                    />
+                  </div>
+
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">Codeforces Handle</label>
+                    <input
+                      type="text"
+                      value={value.personalInfo.codeforces || ""}
+                      onChange={(e) => handlePersonalInfoChange("codeforces", e.target.value)}
+                      placeholder="codeforces.com/profile/alex"
+                      className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-2.5 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                    />
+                  </div>
                 </div>
 
                 <div className="h-[1px] bg-[#ffffff14] my-2" />
@@ -459,6 +638,9 @@ export default function ResumeBuilderWorkspace({
                       rows={5}
                       className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-3 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors leading-relaxed resize-none"
                     />
+                    <span className="text-[9px] text-[#bfc7d4]/40 mt-1 block font-sans">
+                      Supports formatting: **bold**, *italic*, [link text](url).
+                    </span>
                   </div>
 
                   <div>
@@ -470,6 +652,96 @@ export default function ResumeBuilderWorkspace({
                       rows={3}
                       className="w-full bg-[#191c1e] border border-[#ffffff14] rounded-lg px-4 py-3 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors leading-relaxed resize-none"
                     />
+                  </div>
+                </div>
+
+                <div className="h-[1px] bg-[#ffffff14] my-2" />
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-[#a0caff]">Layout & Typography</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">Font Size</label>
+                      <div className="flex gap-2 bg-[#191c1e] p-1 rounded-lg border border-[#ffffff14]">
+                        {(["sm", "md", "lg"] as const).map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => handleSettingChange("fontSize", sz)}
+                            className={`flex-1 py-1.5 text-center text-xs font-bold rounded-md transition-all uppercase ${
+                              (value.settings?.fontSize || "md") === sz
+                                ? "bg-[#2294f4] text-[#002b4e]"
+                                : "text-[#bfc7d4] hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            {sz === "sm" ? "Small" : sz === "md" ? "Medium" : "Large"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">Page Spacing</label>
+                      <div className="flex gap-2 bg-[#191c1e] p-1 rounded-lg border border-[#ffffff14]">
+                        {(["compact", "normal", "spacious"] as const).map((sp) => (
+                          <button
+                            key={sp}
+                            type="button"
+                            onClick={() => handleSettingChange("spacing", sp)}
+                            className={`flex-1 py-1.5 text-center text-xs font-bold rounded-md transition-all uppercase ${
+                              (value.settings?.spacing || "normal") === sp
+                                ? "bg-[#2294f4] text-[#002b4e]"
+                                : "text-[#bfc7d4] hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            {sp === "compact" ? "Tight" : sp === "normal" ? "Normal" : "Wide"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-[#bfc7d4]/70 mb-1.5 block uppercase tracking-wider">Section Order (Reorder)</label>
+                    <div className="space-y-2 bg-[#191c1e] border border-[#ffffff14] rounded-lg p-3">
+                      {(value.settings?.sectionOrder || ["summary", "education", "experience", "projects", "certifications", "skills"]).map((section, idx) => {
+                        const label = {
+                          summary: "Profile Summary",
+                          experience: "Work Experience",
+                          projects: "Featured Projects",
+                          skills: "Skills & Expertise",
+                          education: "Education Details",
+                          certifications: "Certifications",
+                        }[section as "summary" | "experience" | "projects" | "skills" | "education" | "certifications"];
+
+                        return (
+                          <div key={section} className="flex items-center justify-between bg-[#111415] border border-[#ffffff0a] px-3 py-2 rounded-md">
+                            <span className="text-xs font-semibold text-white">{label}</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => moveSection(idx, "up")}
+                                className="p-1 rounded text-[#bfc7d4] hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                title="Move Up"
+                              >
+                                <span className="material-symbols-outlined text-[16px] leading-none">arrow_upward</span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === (value.settings?.sectionOrder?.length || 6) - 1}
+                                onClick={() => moveSection(idx, "down")}
+                                className="p-1 rounded text-[#bfc7d4] hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                title="Move Down"
+                              >
+                                <span className="material-symbols-outlined text-[16px] leading-none">arrow_downward</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -555,6 +827,9 @@ export default function ResumeBuilderWorkspace({
                               rows={4}
                               className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors resize-none leading-relaxed"
                             />
+                            <span className="text-[9px] text-[#bfc7d4]/40 mt-1 block font-sans">
+                              Supports formatting: **bold**, *italic*, [link text](url). Start lines with `-` or `•` for bullets.
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -689,9 +964,8 @@ export default function ResumeBuilderWorkspace({
                         <span className="text-[10px] font-bold text-[#bfc7d4]/40 uppercase tracking-widest block mb-3">
                           Project #{idx + 1}
                         </span>
-
                         <div className="grid grid-cols-2 gap-4">
-                          <div>
+                          <div className="col-span-2 sm:col-span-1">
                             <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Project Name</label>
                             <input
                               type="text"
@@ -702,7 +976,18 @@ export default function ResumeBuilderWorkspace({
                             />
                           </div>
 
-                          <div>
+                          <div className="col-span-2 sm:col-span-1">
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Dates (e.g. April 2026)</label>
+                            <input
+                              type="text"
+                              value={item.dates || ""}
+                              onChange={(e) => updateProject(item.id, "dates", e.target.value)}
+                              placeholder="April 2026"
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                            />
+                          </div>
+
+                          <div className="col-span-2">
                             <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Tech Stack (comma-separated)</label>
                             <input
                               type="text"
@@ -713,14 +998,128 @@ export default function ResumeBuilderWorkspace({
                             />
                           </div>
 
+                          <div className="col-span-2 sm:col-span-1">
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">GitHub URL</label>
+                            <input
+                              type="text"
+                              value={item.githubUrl || ""}
+                              onChange={(e) => updateProject(item.id, "githubUrl", e.target.value)}
+                              placeholder="github.com/alex/project"
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                            />
+                          </div>
+
+                          <div className="col-span-2 sm:col-span-1">
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Live Demo URL</label>
+                            <input
+                              type="text"
+                              value={item.demoUrl || ""}
+                              onChange={(e) => updateProject(item.id, "demoUrl", e.target.value)}
+                              placeholder="project.demo.com"
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                            />
+                          </div>
+
+                           <div className="col-span-2">
+                             <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Description</label>
+                             <textarea
+                               value={item.description}
+                               onChange={(e) => updateProject(item.id, "description", e.target.value)}
+                               placeholder="Developed a high-throughput REST API supporting 10k requests per second..."
+                               rows={4}
+                               className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors resize-none leading-relaxed"
+                             />
+                             <span className="text-[9px] text-[#bfc7d4]/40 mt-1 block font-sans">
+                               Supports formatting: **bold**, *italic*, [link text](url). Start lines with `-` or `•` for bullets.
+                             </span>
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* CERTIFICATIONS TAB */}
+            {activeTab === "certifications" && (
+              <div className="space-y-5 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-[#a0caff]">Certifications</h3>
+                  <button
+                    onClick={addCertification}
+                    className="flex items-center gap-1 bg-[#2294f4]/10 text-[#a0caff] text-[10px] uppercase font-bold py-1.5 px-3 rounded border border-[#2294f4]/20 hover:bg-[#2294f4]/20 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">add</span> Add Item
+                  </button>
+                </div>
+
+                {!value.certifications || value.certifications.length === 0 ? (
+                  <div className="border border-dashed border-[#ffffff14] rounded-lg p-8 text-center text-[#bfc7d4]">
+                    <span className="material-symbols-outlined text-3xl opacity-40 mb-2">workspace_premium</span>
+                    <p className="text-xs">No certifications added. Click the button to add certification credentials.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {value.certifications.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className="bg-[#191c1e] border border-[#ffffff14] rounded-xl p-4 relative group hover:border-[#ffffff22] transition-colors"
+                      >
+                        <button
+                          onClick={() => deleteCertification(item.id)}
+                          className="absolute top-4 right-4 text-xs text-[#bfc7d4] opacity-30 hover:opacity-100 hover:text-red-400 transition-all"
+                          title="Delete Item"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+
+                        <span className="text-[10px] font-bold text-[#bfc7d4]/40 uppercase tracking-widest block mb-3">
+                          Certification #{idx + 1}
+                        </span>
+
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="col-span-2">
-                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Description</label>
-                            <textarea
-                              value={item.description}
-                              onChange={(e) => updateProject(item.id, "description", e.target.value)}
-                              placeholder="Developed a high-throughput REST API supporting 10k requests per second..."
-                              rows={4}
-                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors resize-none leading-relaxed"
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Certification Name</label>
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(e) => updateCertification(item.id, "name", e.target.value)}
+                              placeholder="Supervised Machine Learning"
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Issuer / Authority</label>
+                            <input
+                              type="text"
+                              value={item.issuer}
+                              onChange={(e) => updateCertification(item.id, "issuer", e.target.value)}
+                              placeholder="DeepLearning.AI"
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Date (e.g. May 2025)</label>
+                            <input
+                              type="text"
+                              value={item.dates}
+                              onChange={(e) => updateCertification(item.id, "dates", e.target.value)}
+                              placeholder="May 2025"
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
+                            />
+                          </div>
+
+                          <div className="col-span-2">
+                            <label className="text-[10px] font-bold text-[#bfc7d4]/60 mb-1 block uppercase tracking-wider">Credential Link / URL</label>
+                            <input
+                              type="text"
+                              value={item.link || ""}
+                              onChange={(e) => updateCertification(item.id, "link", e.target.value)}
+                              placeholder="coursera.org/verify/..."
+                              className="w-full bg-[#111415] border border-[#ffffff14] rounded-lg px-3 py-2 text-xs text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] transition-colors"
                             />
                           </div>
                         </div>
@@ -776,6 +1175,8 @@ export default function ResumeBuilderWorkspace({
                 experience={value.experience}
                 education={value.education}
                 projects={value.projects}
+                certifications={value.certifications || []}
+                settings={value.settings}
               />
             </div>
           </div>
