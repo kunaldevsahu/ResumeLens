@@ -225,7 +225,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1">
                       <p className="font-['Inter'] text-sm text-[#e1e2e4]">
-                        You created <span className="font-bold text-white">'Senior Product Designer'</span> resume
+                        You created <span className="font-bold text-white">&apos;Senior Product Designer&apos;</span> resume
                       </p>
                       <p className="font-['Geist'] text-xs text-[#bfc7d4]/60 mt-0.5">
                         Today at 9:42 AM • Professional Template
@@ -249,7 +249,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1">
                       <p className="font-['Inter'] text-sm text-[#e1e2e4]">
-                        Updated <span className="font-bold text-white">'Software Engineer'</span> skills section
+                        Updated <span className="font-bold text-white">&apos;Software Engineer&apos;</span> skills section
                       </p>
                       <p className="font-['Geist'] text-xs text-[#bfc7d4]/60 mt-0.5">
                         Yesterday at 5:15 PM • Added 3 new technologies
