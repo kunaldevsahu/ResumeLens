@@ -38,8 +38,7 @@ export default function Sidebar() {
     { name: "ATS Analyzer", href: "/ats-analysis", icon: "analytics" },
     { name: "Templates", href: "/templates", icon: "style" },
     { name: "Pricing", href: "/pricing", icon: "payments" },
-    { name: "Profile", href: "/profile", icon: "person" },
-    { name: "Settings", href: "/settings", icon: "settings" },
+    { name: "Profile & Settings", href: "/profile", icon: "person" },
   ];
 
   return (

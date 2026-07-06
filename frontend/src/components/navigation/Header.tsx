@@ -10,7 +10,6 @@ export default function Header() {
 
   const name = user?.name || "Alex Rivera";
   const planBadge = user?.plan === "pro" ? "Pro Plan" : "Basic Plan";
-  const profilePic = user?.profilePicture || "https://lh3.googleusercontent.com/aida-public/AB6AXuCKSv6WdBwxcbXqU6Rc6evCO6WcJgkFmGCBqfgBrbgPZ1r95-zV5R6O6XqFdIt5yUfLga4HXK0UPiVT7K-xJ47yT5f81gz8jusmiFGrTT5st6FKkd7FM1mgvS34p7xa45NrsioeSj0Ti0ehyI4bN2yOlffkrvFhTeGpnbRicaYeaypn4-mvy-cwslNK0fXf3d1jd2y1DM35rSmZ6zstz37Qv8phW8ZOtNIKjvmptgJ-sI8bu5wjKfM5RMmKOyW57KUgZpH1q05O18ox";
 
   return (
     <header className="sticky top-0 z-40 w-full h-16 bg-[#111415]/80 backdrop-blur-md border-b border-[#ffffff14] flex items-center justify-between px-8 md:pl-8">
@@ -43,13 +42,10 @@ export default function Header() {
           </div>
           <Link
             href="/profile"
-            className="w-8 h-8 rounded-full bg-[#323537] overflow-hidden border border-[#ffffff14] block hover:border-[#a0caff] transition-all"
+            className="w-8 h-8 rounded-full bg-[#a0caff]/15 text-[#a0caff] border border-[#a0caff]/30 flex items-center justify-center font-bold text-xs select-none hover:border-[#a0caff] hover:bg-[#a0caff]/25 transition-all"
+            title="Profile & Settings"
           >
-            <img
-              alt="User Profile"
-              className="w-full h-full object-cover"
-              src={profilePic}
-            />
+            {name.charAt(0).toUpperCase()}
           </Link>
         </div>
       </div>

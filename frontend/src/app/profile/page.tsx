@@ -13,6 +13,51 @@ import {
 import UpgradeModal from "@/components/ui/UpgradeModal";
 import { getSubscription, type SubscriptionResponse } from "@/services/payment.service";
 
+const features = [
+  {
+    name: "Resume Creation Limit",
+    basic: "Up to 10 Resumes",
+    pro: "Unlimited Resumes",
+    highlight: true,
+  },
+  {
+    name: "Standard & Premium Templates",
+    basic: "Included",
+    pro: "Included",
+    highlight: false,
+  },
+  {
+    name: "Live Sandbox Builder Workspace",
+    basic: "Included",
+    pro: "Included",
+    highlight: false,
+  },
+  {
+    name: "PDF Downloads & Exports",
+    basic: "Included",
+    pro: "Included",
+    highlight: false,
+  },
+  {
+    name: "ATS Score Analysis",
+    basic: "Included",
+    pro: "Included",
+    highlight: false,
+  },
+  {
+    name: "Future Resume Versioning",
+    basic: "Coming Soon",
+    pro: "Priority Access",
+    highlight: false,
+  },
+  {
+    name: "Future AI Suggestions & Enhancements",
+    basic: "Coming Soon",
+    pro: "Priority Access",
+    highlight: false,
+  },
+];
+
 export default function ProfilePage() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
@@ -20,12 +65,13 @@ export default function ProfilePage() {
   const fetchUser = useAuthStore((state) => state.fetchUser);
   const setUser = useAuthStore((state) => state.setUser);
 
+  const [activeTab, setActiveTab] = useState("profile");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [github, setGithub] = useState("");
-  const [profilePicture, setProfilePicture] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -34,6 +80,26 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+
+  useEffect(() => {
+    // Handle loading active tab from query param on mount
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam && ["profile", "security", "billing"].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  const handleTabChange = (tabName: string) => {
+    setActiveTab(tabName);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tabName);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -45,7 +111,6 @@ export default function ProfilePage() {
         setPhone(data.phone || "");
         setLinkedin(data.linkedin || "");
         setGithub(data.github || "");
-        setProfilePicture(data.profilePicture || "");
         
         try {
           const subData = await getSubscription();
@@ -72,7 +137,7 @@ export default function ProfilePage() {
         phone: phone || null,
         linkedin: linkedin || null,
         github: github || null,
-        profilePicture: profilePicture || null,
+        profilePicture: null,
       });
       setUser({
         ...user!,
@@ -115,7 +180,7 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
-  const avatarUrl = user?.profilePicture || "https://lh3.googleusercontent.com/aida-public/AB6AXuCKSv6WdBwxcbXqU6Rc6evCO6WcJgkFmGCBqfgBrbgPZ1r95-zV5R6O6XqFdIt5yUfLga4HXK0UPiVT7K-xJ47yT5f81gz8jusmiFGrTT5st6FKkd7FM1mgvS34p7xa45NrsioeSj0Ti0ehyI4bN2yOlffkrvFhTeGpnbRicaYeaypn4-mvy-cwslNK0fXf3d1jd2y1DM35rSmZ6zstz37Qv8phW8ZOtNIKjvmptgJ-sI8bu5wjKfM5RMmKOyW57KUgZpH1q05O18ox";
+  // Using user initial-based logo instead of profile picture URL
 
   return (
     <ProtectedRoute>
@@ -136,6 +201,40 @@ export default function ProfilePage() {
               <p className="text-[#bfc7d4] text-sm font-['Inter']">
                 Manage your personal info, security preferences, and subscription details.
               </p>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-[#ffffff14] gap-2 pb-px text-xs font-['Geist'] font-bold">
+              <button
+                onClick={() => handleTabChange("profile")}
+                className={`py-2.5 px-4 transition-all border-b-2 cursor-pointer ${
+                  activeTab === "profile"
+                    ? "text-[#a0caff] border-[#2294f4]"
+                    : "text-[#bfc7d4] border-transparent hover:text-white"
+                }`}
+              >
+                Profile Info
+              </button>
+              <button
+                onClick={() => handleTabChange("security")}
+                className={`py-2.5 px-4 transition-all border-b-2 cursor-pointer ${
+                  activeTab === "security"
+                    ? "text-[#a0caff] border-[#2294f4]"
+                    : "text-[#bfc7d4] border-transparent hover:text-white"
+                }`}
+              >
+                Security & Password
+              </button>
+              <button
+                onClick={() => handleTabChange("billing")}
+                className={`py-2.5 px-4 transition-all border-b-2 cursor-pointer ${
+                  activeTab === "billing"
+                    ? "text-[#a0caff] border-[#2294f4]"
+                    : "text-[#bfc7d4] border-transparent hover:text-white"
+                }`}
+              >
+                Plan & Billing
+              </button>
             </div>
 
             {/* Notification Messages */}
@@ -160,13 +259,9 @@ export default function ProfilePage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Profile Card & Membership (Left) */}
-                <div className="lg:col-span-1 bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 flex flex-col items-center text-center">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#a0caff] mb-4">
-                    <img
-                      alt="Profile Avatar"
-                      className="w-full h-full object-cover"
-                      src={avatarUrl}
-                    />
+                <div className="lg:col-span-1 bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 flex flex-col items-center text-center self-start">
+                  <div className="w-24 h-24 rounded-full bg-[#a0caff]/15 text-[#a0caff] border-2 border-[#a0caff]/35 flex items-center justify-center font-bold text-3xl select-none mb-4">
+                    {(user?.name || name || "A").charAt(0).toUpperCase()}
                   </div>
                   <h3 className="font-['Geist'] text-lg font-bold text-white mb-1">{user?.name || name}</h3>
                   <p className="font-['Inter'] text-xs text-[#bfc7d4] opacity-75 mb-6">{user?.email || email}</p>
@@ -225,116 +320,178 @@ export default function ProfilePage() {
                   </button>
                 </div>
 
-                {/* Form Updates (Right) */}
+                {/* Form/Details Columns (Right) */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Edit details */}
-                  <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6">
-                    <h4 className="font-['Geist'] text-base font-bold text-white mb-4">Account Information</h4>
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Full Name</label>
-                          <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            required
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Email Address (Read-only)</label>
-                          <input
-                            type="email"
-                            value={email}
-                            disabled
-                            className="bg-[#111415] border border-[#ffffff0a] text-[#bfc7d4]/50 p-3 rounded-lg text-xs cursor-not-allowed focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Phone Number</label>
-                          <input
-                            type="text"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            placeholder="+1 (555) 000-0000"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Profile Picture URL</label>
-                          <input
-                            type="text"
-                            value={profilePicture}
-                            onChange={(e) => setProfilePicture(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            placeholder="https://example.com/avatar.jpg"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">LinkedIn Profile URL</label>
-                          <input
-                            type="text"
-                            value={linkedin}
-                            onChange={(e) => setLinkedin(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            placeholder="https://linkedin.com/in/username"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">GitHub Profile URL</label>
-                          <input
-                            type="text"
-                            value={github}
-                            onChange={(e) => setGithub(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            placeholder="https://github.com/username"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="submit"
-                        className="bg-[#2294f4] text-[#002b4e] font-['Geist'] text-xs font-bold px-6 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
-                      >
-                        Save Account Details
-                      </button>
-                    </form>
-                  </div>
+                  {/* TAB 1: Profile Info */}
+                  {activeTab === "profile" && (
+                    <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 animate-fade-in">
+                      <h4 className="font-['Geist'] text-base font-bold text-white mb-4">Account Information</h4>
+                      <form onSubmit={handleUpdateProfile} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Full Name</label>
+                            <input
+                              type="text"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
+                              required
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Email Address (Read-only)</label>
+                            <input
+                              type="email"
+                              value={email}
+                              disabled
+                              className="bg-[#111415] border border-[#ffffff0a] text-[#bfc7d4]/50 p-3 rounded-lg text-xs cursor-not-allowed focus:outline-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Phone Number</label>
+                            <input
+                              type="text"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
+                              className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
+                              placeholder="+1 (555) 000-0000"
+                            />
+                          </div>
 
-                  {/* Change password */}
-                  <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6">
-                    <h4 className="font-['Geist'] text-base font-bold text-white mb-4">Change Password</h4>
-                    <form onSubmit={handleUpdatePassword} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Current Password</label>
-                          <input
-                            type="password"
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            placeholder="••••••••"
-                          />
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">LinkedIn Profile URL</label>
+                            <input
+                              type="text"
+                              value={linkedin}
+                              onChange={(e) => setLinkedin(e.target.value)}
+                              className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
+                              placeholder="https://linkedin.com/in/username"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">GitHub Profile URL</label>
+                            <input
+                              type="text"
+                              value={github}
+                              onChange={(e) => setGithub(e.target.value)}
+                              className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
+                              placeholder="https://github.com/username"
+                            />
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">New Password</label>
-                          <input
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
-                            placeholder="••••••••"
-                          />
+                        <button
+                          type="submit"
+                          className="bg-[#2294f4] text-[#002b4e] font-['Geist'] text-xs font-bold px-6 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer mt-2"
+                        >
+                          Save Account Details
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* TAB 2: Security & Password */}
+                  {activeTab === "security" && (
+                    <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 animate-fade-in">
+                      <h4 className="font-['Geist'] text-base font-bold text-white mb-4">Change Password</h4>
+                      <form onSubmit={handleUpdatePassword} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">Current Password</label>
+                            <input
+                              type="password"
+                              value={currentPassword}
+                              onChange={(e) => setCurrentPassword(e.target.value)}
+                              className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
+                              placeholder="••••••••"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] uppercase font-bold text-[#bfc7d4]/60">New Password</label>
+                            <input
+                              type="password"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              className="bg-[#111415] border border-[#ffffff14] text-[#e1e2e4] p-3 rounded-lg text-xs focus:outline-none focus:border-[#a0caff]"
+                              placeholder="••••••••"
+                            />
+                          </div>
                         </div>
+                        <button
+                          type="submit"
+                          className="bg-[#2294f4] text-[#002b4e] font-['Geist'] text-xs font-bold px-6 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer mt-2"
+                        >
+                          Change Password
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* TAB 3: Plan & Billing Benefits table */}
+                  {activeTab === "billing" && (
+                    <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl overflow-hidden animate-fade-in">
+                      <div className="p-6 border-b border-[#ffffff14]">
+                        <h4 className="font-['Geist'] text-base font-bold text-white">
+                          Compare Plan Benefits
+                        </h4>
+                        <p className="text-[#bfc7d4]/60 text-xs font-['Inter'] mt-0.5">
+                          Explore what is included in each plan tier.
+                        </p>
                       </div>
-                      <button
-                        type="submit"
-                        className="bg-[#2294f4] text-[#002b4e] font-['Geist'] text-xs font-bold px-6 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
-                      >
-                        Change Password
-                      </button>
-                    </form>
-                  </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left font-['Inter'] border-collapse">
+                          <thead>
+                            <tr className="bg-[#191c1e] text-[10px] uppercase font-bold text-[#bfc7d4]/70 tracking-widest border-b border-[#ffffff14]">
+                              <th className="py-4 px-6">Feature</th>
+                              <th className="py-4 px-6 text-center">Basic Plan</th>
+                              <th className="py-4 px-6 text-center">Pro Plan</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#ffffff0a] text-xs text-[#e1e2e4]">
+                            {features.map((feature, idx) => (
+                              <tr
+                                key={idx}
+                                className={`hover:bg-[#111415]/20 transition-colors ${
+                                  feature.highlight ? "bg-[#2294f4]/5" : ""
+                                }`}
+                              >
+                                <td className="py-4 px-6 font-medium text-white">{feature.name}</td>
+                                <td className="py-4 px-6 text-center text-[#bfc7d4]/80">
+                                  {feature.basic === "Included" ? (
+                                    <span className="material-symbols-outlined text-[#10b981] text-[18px] inline-block align-middle">
+                                      check_circle
+                                    </span>
+                                  ) : (
+                                    <span>{feature.basic}</span>
+                                  )}
+                                </td>
+                                <td className="py-4 px-6 text-center font-bold text-[#a0caff]">
+                                  {feature.pro === "Included" ? (
+                                    <span className="material-symbols-outlined text-[#a0caff] text-[18px] inline-block align-middle">
+                                      check_circle
+                                    </span>
+                                  ) : (
+                                    <span>{feature.pro}</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {user?.plan === "basic" && (
+                        <div className="p-6 bg-[#191c1e] border-t border-[#ffffff14] flex justify-end">
+                          <button
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="bg-[#2294f4] hover:bg-[#a0caff] text-[#002b4e] font-['Geist'] text-xs font-bold px-6 py-2.5 rounded-lg transition-all cursor-pointer"
+                          >
+                            Get Unlimited Resumes Now
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -349,4 +506,3 @@ export default function ProfilePage() {
     </ProtectedRoute>
   );
 }
-
