@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 
 export default function Header() {
-  const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
   const name = user?.name || "Alex Rivera";

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { getResumeById, updateResume, type Resume } from "@/services/resume.service";
+import { getResumeById, updateResume } from "@/services/resume.service";
 import TemplateEngine from "@/components/resumes/TemplateEngine";
 import TemplateSwitcher from "@/components/resumes/TemplateSwitcher";
 
@@ -63,7 +63,6 @@ interface ResumeSettings {
 }
 
 export default function ResumeDetailPage() {
-  const router = useRouter();
   const params = useParams<{ id: string }>();
   
   const [loading, setLoading] = useState(true);

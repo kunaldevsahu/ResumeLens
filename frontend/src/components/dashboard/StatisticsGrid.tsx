@@ -4,14 +4,12 @@ interface StatisticsGridProps {
   resumesCount: number;
   analysesCount: number;
   plan: "basic" | "pro";
-  onUpgradeClick: () => void;
 }
 
 export default function StatisticsGrid({
   resumesCount,
   analysesCount,
   plan,
-  onUpgradeClick,
 }: StatisticsGridProps) {
   const limit = 10;
   const remaining = Math.max(0, limit - resumesCount);

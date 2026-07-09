@@ -48,7 +48,6 @@ export default function AtsAnalysisPage() {
   // Service Data States
   const [analysisResult, setAnalysisResult] = useState<AtsReport | null>(null);
   const [historyList, setHistoryList] = useState<AtsHistoryItem[]>([]);
-  const [loadingResumes, setLoadingResumes] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [apiError, setApiError] = useState("");
   const [scannedResume, setScannedResume] = useState<any>(null);

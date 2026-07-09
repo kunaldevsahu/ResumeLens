@@ -454,7 +454,7 @@ function NewResumeWizard() {
                   Create a New Resume
                 </h2>
                 <p className="text-sm text-[#bfc7d4] opacity-75 font-['Inter'] max-w-md mx-auto">
-                  Choose how you'd like to get started. Select a template afterwards to refine your layout.
+                  Choose how you&apos;d like to get started. Select a template afterwards to refine your layout.
                 </p>
               </div>
 

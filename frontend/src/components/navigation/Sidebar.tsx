@@ -9,7 +9,6 @@ import UpgradeModal from "@/components/ui/UpgradeModal";
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const fetchUser = useAuthStore((state) => state.fetchUser);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);

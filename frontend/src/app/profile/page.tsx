@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
 import Header from "@/components/navigation/Header";
@@ -59,8 +58,6 @@ const features = [
 ];
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const fetchUser = useAuthStore((state) => state.fetchUser);
   const setUser = useAuthStore((state) => state.setUser);

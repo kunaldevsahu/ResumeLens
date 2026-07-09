@@ -110,8 +110,8 @@ export default function LandingPage() {
   const [dates, setDates] = useState("2023 - Present");
   const [description, setDescription] = useState("Led redesign of developer console dashboard, resulting in 40% user retention growth.");
 
-  const [school, setSchool] = useState("Stanford University");
-  const [degree, setDegree] = useState("M.S. in Human-Computer Interaction");
+  const [school] = useState("Stanford University");
+  const [degree] = useState("M.S. in Human-Computer Interaction");
 
   const handleAddSkill = (e: React.FormEvent) => {
     e.preventDefault();

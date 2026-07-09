@@ -99,7 +99,7 @@ export default function AIResumeReview({ report }: AIResumeReviewProps) {
               <span>👔</span> Recruiter Perspective
             </h4>
             <div className="bg-[#111415] border border-[#ffffff08] rounded-xl p-4 text-xs text-[#bfc7d4] leading-relaxed italic">
-              "{recruiterPerspective}"
+              &ldquo;{recruiterPerspective}&rdquo;
             </div>
           </div>
 

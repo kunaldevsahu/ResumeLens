@@ -3,11 +3,7 @@
 import { useAuthStore } from "@/store/auth.store";
 import { useRouter } from "next/navigation";
 
-interface DashboardHeaderProps {
-  onUpgradeClick: () => void;
-}
-
-export default function DashboardHeader({ onUpgradeClick }: DashboardHeaderProps) {
+export default function DashboardHeader() {
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
 

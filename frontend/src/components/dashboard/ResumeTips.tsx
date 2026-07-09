@@ -69,7 +69,7 @@ export default function ResumeTips() {
 
         {currentTip.example && (
           <div className="bg-[#111415] border border-white/5 rounded-xl p-3 text-[11px] text-[#bfc7d4]/80 italic">
-            Example: "{currentTip.example}"
+            Example: &ldquo;{currentTip.example}&rdquo;
           </div>
         )}
 

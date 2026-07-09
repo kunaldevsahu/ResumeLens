@@ -15,11 +15,7 @@ export default function SelectResume({
   onSelect,
   onNext,
 }: SelectResumeProps) {
-  const getPreviewImage = (template?: string) => {
-    const temp = template || "modern-ats";
-    // Returns mapped local public images matching project landing page
-    return `/templates/${temp}-preview.png`;
-  };
+
 
   return (
     <div className="space-y-6">

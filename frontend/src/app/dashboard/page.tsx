@@ -119,7 +119,7 @@ export default function Dashboard() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col md:pl-60">
-          <DashboardHeader onUpgradeClick={() => setShowUpgradeModal(true)} />
+          <DashboardHeader />
 
           <main className="p-8 max-w-5xl w-full mx-auto space-y-8">
             {loading ? (
@@ -159,7 +159,6 @@ export default function Dashboard() {
                   resumesCount={resumes.length}
                   analysesCount={atsHistory.length}
                   plan={plan}
-                  onUpgradeClick={() => setShowUpgradeModal(true)}
                 />
 
                 {/* Quick Actions Bar */}

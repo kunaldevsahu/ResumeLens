@@ -198,7 +198,6 @@ interface ResumeBuilderWorkspaceProps {
 type TabType = "basics" | "experience" | "education" | "projects" | "certifications";
 
 export default function ResumeBuilderWorkspace({
-  mode,
   value,
   saveStatus,
   primaryActionLabel,
