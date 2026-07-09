@@ -86,8 +86,6 @@ export default function AtsAnalysisPage() {
         }
       } catch (err) {
         console.error("Failed to load resumes:", err);
-      } finally {
-        setLoadingResumes(false);
       }
 
       try {
