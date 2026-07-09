@@ -19,8 +19,7 @@ export default function Sidebar() {
   }, [fetchUser]);
 
   const handleLogout = () => {
-    logout();
-    router.push("/login");
+    window.location.href = "/?logout=true";
   };
 
   const handleBuildNew = (e: React.MouseEvent) => {
@@ -97,7 +96,7 @@ export default function Sidebar() {
             className="w-full border border-[#ffffff14] hover:bg-[#191c1e] hover:text-white active:scale-[0.98] py-2 px-4 rounded-lg font-['Geist'] text-xs font-medium text-[#bfc7d4] transition-all flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-[16px]">logout</span>
-            Sign Out
+            Log Out
           </button>
         </div>
       </aside>

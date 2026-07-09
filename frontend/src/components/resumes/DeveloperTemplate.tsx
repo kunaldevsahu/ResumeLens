@@ -381,10 +381,10 @@ export default function DeveloperTemplate({
       {/* Left-aligned Header */}
       <header className="pb-2 w-full">
         <h1 className={`${sizeClasses.name} font-bold text-[#854d0e] tracking-tight mb-0.5`}>
-          {personalInfo.name || "Untitled Name"}
+          {personalInfo.name}
         </h1>
         <p className={`${sizeClasses.title} font-semibold text-slate-600 tracking-wider uppercase mb-3`}>
-          {personalInfo.jobTitle || "Job Title"}
+          {personalInfo.jobTitle}
         </p>
         
         {/* Contact details */}

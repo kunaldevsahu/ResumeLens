@@ -43,20 +43,21 @@ export default function ResumeUploader({
     setIsUploading(true);
     setUploadProgress(0);
 
+    let progress = 0;
     const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          // Pass mock text content to simulation service
-          onUploadSuccess(
-            fileObj.name,
-            `Mock uploaded content for ${fileObj.name}. Senior product designer with Docker, AWS, GraphQL and CI/CD skills.`
-          );
-          return 100;
-        }
-        return prev + 10;
-      });
+      progress += 10;
+      if (progress >= 100) {
+        clearInterval(interval);
+        setUploadProgress(100);
+        setIsUploading(false);
+        // Pass mock text content to simulation service
+        onUploadSuccess(
+          fileObj.name,
+          `Mock uploaded content for ${fileObj.name}. Senior product designer with Docker, AWS, GraphQL and CI/CD skills.`
+        );
+      } else {
+        setUploadProgress(progress);
+      }
     }, 150);
   };
 

@@ -437,7 +437,7 @@ export default function ResumeBuilderWorkspace({
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#191c1e] hover:bg-[#1d2022] text-[#bfc7d4] hover:text-white text-xs font-bold rounded-lg border border-[#ffffff14] cursor-pointer transition-all active:scale-[0.98]"
           >
             <span className="material-symbols-outlined text-sm text-[#a0caff]">dashboard_customize</span>
-            Template
+            Change Template
           </button>
 
           <button

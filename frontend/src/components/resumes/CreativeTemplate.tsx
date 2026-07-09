@@ -365,10 +365,10 @@ export default function CreativeTemplate({
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white" style={{ fontSize: sizeClasses.name }}>
-              {personalInfo.name || "Untitled Name"}
+              {personalInfo.name}
             </h1>
             <p className="font-semibold text-slate-300 uppercase tracking-wider mt-0.5" style={{ fontSize: sizeClasses.title }}>
-              {personalInfo.jobTitle || "Job Title"}
+              {personalInfo.jobTitle}
             </p>
           </div>
         </div>

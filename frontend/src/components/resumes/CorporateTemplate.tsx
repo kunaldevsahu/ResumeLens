@@ -394,10 +394,10 @@ export default function CorporateTemplate({
       {/* Centered Header Section */}
       <header className="py-2 text-center flex flex-col items-center">
         <h1 className={`${sizeClasses.name} font-bold text-slate-900 tracking-tight mb-1`}>
-          {personalInfo.name || "Untitled Name"}
+          {personalInfo.name}
         </h1>
         <p className={`${sizeClasses.title} font-semibold text-slate-700 tracking-wider uppercase mb-2`}>
-          {personalInfo.jobTitle || "Job Title"}
+          {personalInfo.jobTitle}
         </p>
         
         {/* Centered Contact Details (separated by pipes, no icons) */}

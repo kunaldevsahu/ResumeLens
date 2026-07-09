@@ -48,6 +48,8 @@ export default function JobDescriptionForm({
     }
   };
 
+  const isGeneralScan = jobDescription.trim().length < 20;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -56,7 +58,7 @@ export default function JobDescriptionForm({
             Job Description
           </h3>
           <p className="text-xs text-[#bfc7d4] opacity-75">
-            Provide the target job description to match against your resume.
+            Provide the target job description to match, or leave blank to check general best practices.
           </p>
         </div>
 
@@ -82,7 +84,7 @@ export default function JobDescriptionForm({
         <textarea
           value={jobDescription}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Paste the complete job description here (e.g. Roles, Responsibilities, and Technical Requirements)..."
+          placeholder="Paste the complete job description here to match keywords, or leave empty to scan general resume quality and formatting rules..."
           rows={12}
           className="w-full bg-[#111415] border border-[#ffffff14] rounded-xl p-4 text-xs font-['Inter'] text-[#e1e2e4] placeholder-[#bfc7d4]/30 focus:outline-none focus:border-[#a0caff] focus:ring-1 focus:ring-[#a0caff] transition-all resize-none"
         ></textarea>
@@ -104,11 +106,12 @@ export default function JobDescriptionForm({
 
         <button
           onClick={onAnalyze}
-          disabled={jobDescription.trim().length < 50}
-          className="bg-[#2294f4] text-[#002b4e] hover:opacity-90 active:scale-95 px-6 py-2.5 rounded-lg text-xs font-bold font-['Geist'] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-[#2294f4] text-[#002b4e] hover:opacity-90 active:scale-95 px-6 py-2.5 rounded-lg text-xs font-bold font-['Geist'] transition-all flex items-center gap-1.5 cursor-pointer"
         >
-          <span className="material-symbols-outlined text-[18px]">analytics</span>
-          <span>Analyze Resume</span>
+          <span className="material-symbols-outlined text-[18px]">
+            {isGeneralScan ? "rule" : "analytics"}
+          </span>
+          <span>{isGeneralScan ? "General Scan (Best Practices)" : "Compare & Match"}</span>
         </button>
       </div>
     </div>

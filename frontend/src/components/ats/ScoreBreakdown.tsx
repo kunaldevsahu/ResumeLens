@@ -15,82 +15,56 @@ export default function ScoreBreakdown({
   experienceScore,
   educationScore,
 }: ScoreBreakdownProps) {
+  // Compute projects impact based on experience and skills
+  const projectsScore = Math.min(100, Math.max(30, Math.round(experienceScore * 0.9 + skillsScore * 0.1)));
+
   const categories = [
-    {
-      name: "Keyword Match",
-      score: keywordScore,
-      icon: "key",
-      desc: "Presence of essential keywords from job role.",
-    },
-    {
-      name: "Formatting & Style",
-      score: formattingScore,
-      icon: "grid_view",
-      desc: "ATS safe structure, fonts, margins, layouts.",
-    },
-    {
-      name: "Skills Alignment",
-      score: skillsScore,
-      icon: "task_alt",
-      desc: "Core technology stack overlap index.",
-    },
-    {
-      name: "Experience Quality",
-      score: experienceScore,
-      icon: "work_history",
-      desc: "Impact metrics and active results verbs.",
-    },
-    {
-      name: "Education Match",
-      score: educationScore,
-      icon: "school",
-      desc: "Compliance in degrees and qualifications.",
-    },
+    { name: "Keyword Match", score: keywordScore },
+    { name: "Skills Alignment", score: skillsScore },
+    { name: "Experience Quality", score: experienceScore },
+    { name: "Formatting & Style", score: formattingScore },
+    { name: "Education Match", score: educationScore },
+    { name: "Projects Impact", score: projectsScore },
   ];
 
-  const getColor = (val: number) => {
-    if (val >= 85) return "bg-[#10b981]";
-    if (val >= 70) return "bg-[#2294f4]";
-    return "bg-[#ef4444]";
+  const getBarColor = (val: number) => {
+    if (val >= 85) return "bg-[#10b981]"; // Green
+    if (val >= 70) return "bg-[#2294f4]"; // Blue
+    if (val >= 40) return "bg-[#dc7506]"; // Orange
+    return "bg-[#ef4444]"; // Red
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-['Geist'] text-lg font-bold text-white mb-4">
-        Category Breakdown
-      </h3>
+    <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 space-y-5">
+      <div>
+        <h4 className="font-['Geist'] text-sm font-bold text-white uppercase tracking-wider">
+          Score Breakdown
+        </h4>
+        <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] mt-0.5">
+          Detailed compatibility index across core resume components.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         {categories.map((cat) => (
-          <div
-            key={cat.name}
-            className="p-5 rounded-2xl bg-[#1d2022] border border-[#ffffff14] space-y-4 flex flex-col justify-between"
-          >
-            <div className="space-y-1">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#a0caff]/70 text-[20px]">
-                    {cat.icon}
-                  </span>
-                  <span className="font-['Geist'] font-bold text-white text-sm">
-                    {cat.name}
-                  </span>
-                </div>
-                <span className="font-['Geist'] text-sm font-bold text-white">
-                  {cat.score}%
-                </span>
-              </div>
-              <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] leading-relaxed">
-                {cat.desc}
-              </p>
-            </div>
+          <div key={cat.name} className="flex items-center justify-between gap-4">
+            {/* Label */}
+            <span className="w-28 text-xs font-semibold text-[#bfc7d4] font-['Geist'] shrink-0">
+              {cat.name}
+            </span>
 
-            <div className="w-full bg-[#111415] h-1.5 rounded-full overflow-hidden">
+            {/* Progress Track & Bar */}
+            <div className="flex-1 bg-[#111415] h-2 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-1000 ${getColor(cat.score)}`}
+                className={`h-full rounded-full transition-all duration-1000 ${getBarColor(cat.score)}`}
                 style={{ width: `${cat.score}%` }}
               ></div>
             </div>
+
+            {/* Value */}
+            <span className="w-10 text-right text-xs font-bold text-white font-['Geist'] shrink-0">
+              {cat.score}%
+            </span>
           </div>
         ))}
       </div>

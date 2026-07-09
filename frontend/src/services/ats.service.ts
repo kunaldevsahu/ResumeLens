@@ -16,6 +16,16 @@ export interface AtsReport {
   missingKeywords: string[];
   strengths: string[];
   suggestions: Array<{ priority: "High" | "Medium" | "Low"; message: string }>;
+  aiReview?: {
+    overallAssessment: string;
+    strengths: string[];
+    areasForImprovement: string[];
+    recruiterPerspective: string;
+    interviewReadiness: {
+      score: number;
+      explanation: string;
+    };
+  };
   createdAt: string;
 }
 

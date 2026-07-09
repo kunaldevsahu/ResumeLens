@@ -1,4 +1,13 @@
 import { prisma } from "../config/prisma";
+import { AiService } from "./ai.service";
+
+// Bypassing any environment-configured proxies that might intercept fetch calls in local environments
+delete process.env.HTTPS_PROXY;
+delete process.env.HTTP_PROXY;
+delete process.env.https_proxy;
+delete process.env.http_proxy;
+
+const aiService = new AiService();
 
 // Comprehensive list of standard tech and domain keywords
 const KEYWORD_BANK = [
@@ -12,13 +21,6 @@ const KEYWORD_BANK = [
   "Product Management", "Data Structures", "Algorithms", "Testing"
 ];
 
-// Helper to detect action verbs in text
-const ACTION_VERBS = [
-  "led", "managed", "developed", "built", "implemented", "designed", "created",
-  "architected", "optimized", "delivered", "coordinated", "collaborated",
-  "increased", "reduced", "improved", "launched", "executed"
-];
-
 export class AtsService {
   async analyzeResume(
     userId: string,
@@ -26,7 +28,7 @@ export class AtsService {
       resumeId?: string;
       resumeTitle?: string;
       resumeContent?: string;
-      jobDescription: string;
+      jobDescription?: string;
     }
   ) {
     const { resumeId, resumeTitle, resumeContent, jobDescription } = payload;
@@ -65,122 +67,165 @@ export class AtsService {
       resumeText = "Senior Software Engineer with experience in React, Node, SQL, Git, and Agile methodology.";
     }
 
-    // 2. Extract job title from description if possible
-    let detectedJobTitle = "Target Role";
-    const jobTitleMatch = jobDescription.match(/(?:title|role|position|hiring for|looking for):\s*([^\n\r]+)/i);
-    if (jobTitleMatch && jobTitleMatch[1]) {
-      detectedJobTitle = jobTitleMatch[1].trim();
-    } else {
-      // Fallback matching first line if it looks like a title
-      const lines = jobDescription.split("\n").map(l => l.trim()).filter(Boolean);
-      if (lines.length > 0 && lines[0].length < 60 && !lines[0].toLowerCase().includes("job description")) {
-        detectedJobTitle = lines[0];
+    // 2. Resolve Job Description & Scan Type
+    const finalJobDescription = jobDescription || "";
+    const isGeneralScan = !finalJobDescription || finalJobDescription.trim().length < 20;
+    let detectedJobTitle = isGeneralScan ? "General Professional Profile" : "Target Role";
+
+    if (!isGeneralScan) {
+      const jobTitleMatch = finalJobDescription.match(/(?:title|role|position|hiring for|looking for):\s*([^\n\r]+)/i);
+      if (jobTitleMatch && jobTitleMatch[1]) {
+        detectedJobTitle = jobTitleMatch[1].trim();
+      } else {
+        // Fallback matching first line if it looks like a title
+        const lines = finalJobDescription.split("\n").map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0 && lines[0].length < 60 && !lines[0].toLowerCase().includes("job description")) {
+          detectedJobTitle = lines[0];
+        }
       }
     }
 
-    // 3. Keyword Match Analysis
-    const jdKeywords = KEYWORD_BANK.filter(kw => 
-      new RegExp(`\\b${kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(jobDescription)
-    );
+    // 3. Score & Analysis Output Variables
+    let overallScore: number = 70;
+    let keywordScore: number = 70;
+    let formattingScore: number = 70;
+    let skillsScore: number = 70;
+    let experienceScore: number = 70;
+    let educationScore: number = 70;
+    let missingKeywords: string[] = [];
+    let strengths: string[] = [];
+    let suggestions: { priority: string; message: string }[] = [];
 
-    // If JD is completely generic and has no matches, select 6 default ones
-    const finalJdKeywords = jdKeywords.length > 0 ? jdKeywords : ["React", "Node", "JavaScript", "SQL", "Git", "Agile"];
-
-    const matchedKeywords = finalJdKeywords.filter(kw => 
-      new RegExp(`\\b${kw.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i').test(resumeText)
-    );
-
-    const missingKeywords = finalJdKeywords.filter(kw => !matchedKeywords.includes(kw));
-
-    // Calculate score components
-    const keywordScore = Math.round((matchedKeywords.length / finalJdKeywords.length) * 100);
-
-    // Formatting check: standard metrics
-    let formattingScore = 95;
-    if (resumeText.length < 200) formattingScore -= 30; // too short
-    if (resumeText.includes("table") || resumeText.includes("columns")) formattingScore -= 10; // complex formatting risk
-
-    // Skills match score
-    const skillsScore = Math.min(100, Math.round(keywordScore + 10));
-
-    // Experience score checks (action verbs + quantitative metrics)
-    let experienceScore = 70;
-    const hasNumbers = /\b\d+(?:%|\s*years|\s*\+\s*|k)\b/i.test(resumeText);
-    const usedVerbs = ACTION_VERBS.filter(verb => 
-      new RegExp(`\\b${verb}\\b`, 'i').test(resumeText)
-    );
-
-    if (hasNumbers) experienceScore += 15;
-    if (usedVerbs.length >= 3) experienceScore += 15;
-    experienceScore = Math.min(100, experienceScore);
-
-    // Education score checks
-    let educationScore = 80;
-    const hasEducationKeywords = /\b(degree|university|college|b\.s|b\.a|m\.s|bachelor|master|education)\b/i.test(resumeText);
-    if (hasEducationKeywords) educationScore += 20;
-
-    // Overall ATS Score
-    const overallScore = Math.round(
-      (keywordScore + formattingScore + skillsScore + experienceScore + educationScore) / 5
-    );
-
-    // 4. Generate Strengths
-    const strengths: string[] = [];
-    if (formattingScore >= 90) strengths.push("ATS friendly resume layout and safe fonts");
-    if (skillsScore >= 80) strengths.push("Strong core technical skills alignment");
-    if (usedVerbs.length >= 3) strengths.push("Excellent usage of active, results-oriented verbs");
-    if (hasNumbers) strengths.push("Includes measurable results and impact metrics");
-    if (strengths.length === 0) strengths.push("Proper section headers and clear hierarchy");
-
-    // 5. Generate Suggestions
-    const suggestions: { priority: string; message: string }[] = [];
-    if (missingKeywords.length > 0) {
-      suggestions.push({
-        priority: "High",
-        message: `Add missing role-specific keywords: ${missingKeywords.slice(0, 3).join(", ")}.`
-      });
-    }
-    if (!hasNumbers) {
-      suggestions.push({
-        priority: "High",
-        message: "Incorporate metrics and numbers (e.g. percentages, dollars saved, hours reduced) to quantify achievements."
-      });
-    }
-    if (usedVerbs.length < 3) {
-      suggestions.push({
-        priority: "Medium",
-        message: "Swap weak passive verbs for strong action verbs (e.g. change 'responsible for designing' to 'designed and launched')."
-      });
-    }
-    if (resumeText.length < 500) {
-      suggestions.push({
-        priority: "Medium",
-        message: "Expand on work history descriptions to describe accomplishments and challenges faced."
-      });
-    }
-    if (!hasEducationKeywords) {
-      suggestions.push({
-        priority: "Low",
-        message: "Add or format your education section to clearly list degrees, institutions, and graduation years."
-      });
+    // AI scan via Groq is strictly required. If key is missing, throw error
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error("Groq API key is not configured in environment");
     }
 
-    // Default suggestions if none are generated
-    if (suggestions.length === 0) {
-      suggestions.push({
-        priority: "Low",
-        message: "Add links to your professional portfolio or GitHub profile."
-      });
+    const prompt = `You are a professional ATS resume scanner. Analyze the following resume.
+${isGeneralScan 
+  ? "This is a GENERAL resume scan. Evaluate the resume against general industry standards and best practices (formatting, layout, metrics/numbers usage, action verbs, section hierarchy, readability)." 
+  : `Compare the resume against this job description and evaluate how well the candidate matches the requirements:\n---JOB DESCRIPTION---\n${finalJobDescription}\n---------------------`}
+
+---RESUME TEXT---
+${resumeText}
+-----------------
+
+Provide your analysis in EXACTLY the following JSON format:
+{
+  "overallScore": number (0-100),
+  "keywordScore": number (0-100),
+  "formattingScore": number (0-100),
+  "skillsScore": number (0-100),
+  "experienceScore": number (0-100),
+  "educationScore": number (0-100),
+  "missingKeywords": ["string", "string", ...],
+  "strengths": ["string", "string", ...],
+  "suggestions": [
+    { "priority": "High" | "Medium" | "Low", "message": "string" },
+    ...
+  ]
+}
+Return ONLY valid JSON, with no other conversational text.`;
+
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: "You are a specialized AI Resume Analyst returning only structured JSON."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Groq API returned an error:", errText);
+      throw new Error(`Failed to query AI Resume Analyst: ${response.statusText}`);
     }
 
-    // 6. Save Report in Database
+    const resJson = await response.json();
+    let rawContent = resJson.choices[0].message.content.trim();
+    
+    // Strip potential markdown code fences
+    if (rawContent.startsWith("```")) {
+      rawContent = rawContent.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+    }
+    
+    const parsed = JSON.parse(rawContent);
+    
+    // Extract and map with camelCase + snake_case fallbacks
+    overallScore = Number(parsed.overallScore ?? parsed.overall_score) || 70;
+    keywordScore = Number(parsed.keywordScore ?? parsed.keyword_score) || 70;
+    formattingScore = Number(parsed.formattingScore ?? parsed.formatting_score) || 70;
+    skillsScore = Number(parsed.skillsScore ?? parsed.skills_score) || 70;
+    experienceScore = Number(parsed.experienceScore ?? parsed.experience_score) || 70;
+    educationScore = Number(parsed.educationScore ?? parsed.education_score) || 70;
+    missingKeywords = Array.isArray(parsed.missingKeywords ?? parsed.missing_keywords) ? (parsed.missingKeywords ?? parsed.missing_keywords) : [];
+    strengths = Array.isArray(parsed.strengths) ? parsed.strengths : [];
+    
+    const rawSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+    suggestions = rawSuggestions.map((s: any) => ({
+      priority: s.priority ?? "Medium",
+      message: s.message ?? String(s)
+    }));
+
+    // 4. Generate AI Resume Review (recruiter & career coach summary)
+    let resumePayloadForAi: any = null;
+    if (resumeId) {
+      const resume = await prisma.resume.findUnique({
+        where: { id: resumeId },
+      });
+      if (resume) {
+        resumePayloadForAi = {
+          title: resume.title,
+          summary: resume.summary,
+          skills: resume.skills,
+          experience: resume.experience,
+          education: resume.education,
+          projects: resume.projects,
+        };
+      }
+    }
+
+    if (!resumePayloadForAi) {
+      resumePayloadForAi = {
+        title: resolvedTitle,
+        rawText: resumeText,
+      };
+    }
+
+    const aiReview = await aiService.generateResumeReview(resumePayloadForAi, finalJobDescription || "General Scan", {
+      overallScore,
+      keywordScore,
+      formattingScore,
+      skillsScore,
+      experienceScore,
+      educationScore,
+      missingKeywords,
+      strengths,
+    });
+
+    // 5. Save Report in Database
     const report = await prisma.atsAnalysis.create({
       data: {
         userId,
         resumeId: resumeId || null,
         resumeTitle: resolvedTitle,
         jobTitle: detectedJobTitle,
-        jobDescription,
+        jobDescription: finalJobDescription || "General Scan (No Job Description)",
         overallScore,
         keywordScore,
         formattingScore,
@@ -190,6 +235,7 @@ export class AtsService {
         missingKeywords,
         strengths,
         suggestions,
+        aiReview: aiReview as any,
       },
     });
 

@@ -107,12 +107,58 @@ export default function TemplateGalleryPage() {
     }
 
     try {
-      const newResume = await createResume({
+      const uploadedDataStr = typeof window !== "undefined" ? sessionStorage.getItem("uploadedResumeData") : null;
+      
+      let payload: any = {
         title: `My ${templateId.replace("-", " ")} Resume`,
-        summary: "Results-oriented professional with experience in leading technical teams.",
-        skills: "React, TypeScript, Next.js, CSS, Node.js",
+        summary: "",
+        skills: "",
         template: templateId,
-      });
+        experience: {
+          personalInfo: {
+            name: "",
+            email: "",
+            phone: "",
+            jobTitle: "",
+            location: "",
+            website: "",
+            linkedin: "",
+            github: "",
+            codeforces: "",
+            leetcode: "",
+          },
+          items: [],
+          settings: {
+            fontSize: "md",
+            spacing: "normal",
+            sectionOrder: ["summary", "education", "experience", "projects", "certifications", "skills"],
+          }
+        },
+        education: {
+          items: [],
+          certifications: []
+        },
+        projects: {
+          items: []
+        }
+      };
+
+      if (uploadedDataStr) {
+        try {
+          const parsed = JSON.parse(uploadedDataStr);
+          payload = {
+            ...payload,
+            ...parsed,
+            template: templateId, // ensure chosen template is set
+          };
+          // Clear session storage so it is a one-time operation
+          sessionStorage.removeItem("uploadedResumeData");
+        } catch (e) {
+          console.error("Failed to parse uploaded resume data from session", e);
+        }
+      }
+
+      const newResume = await createResume(payload);
       // Refresh user profile store (resumeCount changed)
       await fetchUser().catch(console.error);
       router.push(`/resumes/${newResume.id}/edit`);

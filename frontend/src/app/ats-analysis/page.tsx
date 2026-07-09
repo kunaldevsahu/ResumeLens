@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Sidebar from "@/components/navigation/Sidebar";
 import Header from "@/components/navigation/Header";
-import { getResumes, type Resume } from "@/services/resume.service";
+import { getResumes, getResumeById, type Resume } from "@/services/resume.service";
 import {
   analyzeResume,
   getAtsHistory,
@@ -20,10 +20,13 @@ import JobDescriptionForm from "@/components/ats/JobDescriptionForm";
 import AnalysisLoader from "@/components/ats/AnalysisLoader";
 import ATSScoreCard from "@/components/ats/ATSScoreCard";
 import ScoreBreakdown from "@/components/ats/ScoreBreakdown";
-import MissingKeywords from "@/components/ats/MissingKeywords";
-import Strengths from "@/components/ats/Strengths";
+import MatchedSkills from "@/components/ats/MatchedSkills";
+import Strengths, { ATSCompatibility } from "@/components/ats/Strengths";
 import Suggestions from "@/components/ats/Suggestions";
 import HistoryTable from "@/components/ats/HistoryTable";
+import TemplateEngine from "@/components/resumes/TemplateEngine";
+import AIResumeReview from "@/components/ats/AIResumeReview";
+import Link from "next/link";
 
 type WizardState = "home" | "step1" | "step2" | "step3" | "result";
 
@@ -48,6 +51,30 @@ export default function AtsAnalysisPage() {
   const [loadingResumes, setLoadingResumes] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [apiError, setApiError] = useState("");
+  const [scannedResume, setScannedResume] = useState<any>(null);
+
+  useEffect(() => {
+    if (analysisResult && analysisResult.resumeId) {
+      getResumeById(analysisResult.resumeId)
+        .then((data) => {
+          // Parse experience, projects, education fields if they are JSON strings
+          const parsed = { ...data };
+          if (data.experience && typeof data.experience === "string") {
+            parsed.experience = JSON.parse(data.experience);
+          }
+          if (data.projects && typeof data.projects === "string") {
+            parsed.projects = JSON.parse(data.projects);
+          }
+          if (data.education && typeof data.education === "string") {
+            parsed.education = JSON.parse(data.education);
+          }
+          setScannedResume(parsed);
+        })
+        .catch((err) => console.error("Failed to load scanned resume for preview:", err));
+    } else {
+      setScannedResume(null);
+    }
+  }, [analysisResult]);
 
   // 1. Initial Load of Resumes and Scan History
   useEffect(() => {
@@ -328,73 +355,278 @@ ${analysisResult.suggestions.map(s => `- [${s.priority} Priority] ${s.message}`)
             )}
 
             {/* STATE 5: Final Analytics Dashboard */}
-            {wizardState === "result" && analysisResult && (
-              <div className="space-y-8 animate-fade-in">
-                {/* Result Title Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-['Geist'] text-2xl font-bold text-white">
-                      {analysisResult.resumeTitle}
-                    </h2>
-                    <p className="text-xs text-[#bfc7d4] font-medium font-['Inter'] mt-0.5">
-                      ATS Report for <span className="text-[#a0caff] font-semibold">{analysisResult.jobTitle || "Target Role"}</span>
-                    </p>
+            {wizardState === "result" && analysisResult && (() => {
+              const formattedDate = new Date(analysisResult.createdAt).toLocaleDateString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              });
+              const formattedTime = new Date(analysisResult.createdAt).toLocaleTimeString(undefined, {
+                hour: "numeric",
+                minute: "2-digit",
+              });
+
+              return (
+                <div className="space-y-6 animate-fade-in pb-12">
+                  {/* Result Title Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleReset}
+                        className="w-8 h-8 rounded-lg bg-[#ffffff0d] border border-[#ffffff14] hover:bg-[#ffffff14] text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+                        title="Back to Analyzer"
+                      >
+                        <span className="material-symbols-outlined text-base">arrow_back</span>
+                      </button>
+                      <div>
+                        <h2 className="font-['Geist'] text-lg font-bold text-white leading-tight">
+                          ATS Analysis Results
+                        </h2>
+                        <p className="text-[10px] text-[#bfc7d4]/60 font-medium font-['Inter'] mt-0.5">
+                          Analyzed on {formattedDate} • {formattedTime}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleDownloadReport}
+                        className="bg-[#ffffff0d] hover:bg-[#ffffff14] border border-[#ffffff14] text-white px-4 py-2 rounded-lg text-xs font-bold font-['Geist'] flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">download</span>
+                        <span>Download Report</span>
+                      </button>
+                      
+                      <button
+                        onClick={handleReset}
+                        className="bg-[#2294f4] text-[#002b4e] hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg text-xs font-bold font-['Geist'] flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">refresh</span>
+                        <span>Analyze Again</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDownloadReport}
-                      className="bg-[#ffffff0d] hover:bg-[#ffffff14] border border-[#ffffff14] text-white px-4 py-2 rounded-lg text-xs font-bold font-['Geist'] flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">download</span>
-                      <span>Download Report</span>
-                    </button>
-                    
-                    <button
-                      onClick={handleReset}
-                      className="bg-[#2294f4] text-[#002b4e] hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg text-xs font-bold font-['Geist'] flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">refresh</span>
-                      <span>Analyze Again</span>
-                    </button>
-                  </div>
-                </div>
+                  {/* Top Stats Cards Row */}
+                  <ATSScoreCard
+                    overallScore={analysisResult.overallScore}
+                    matchScore={analysisResult.keywordScore}
+                    missingCount={analysisResult.missingKeywords.length}
+                    strengthsCount={analysisResult.strengths.length}
+                  />
 
-                {/* Score and breakdown metrics layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  <div className="lg:col-span-4 space-y-6">
-                    <ATSScoreCard score={analysisResult.overallScore} />
-                    <MissingKeywords keywords={analysisResult.missingKeywords} />
-                  </div>
+                  {/* Main Grid Section */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    {/* Column 1: Resume Preview (Left, col-span-4) */}
+                    <div className="lg:col-span-4 bg-[#1d2022] border border-[#ffffff14] rounded-xl p-5 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <span className="font-['Geist'] text-xs font-bold text-white uppercase tracking-wider">
+                          Resume Preview
+                        </span>
+                        {scannedResume && (
+                          <Link
+                            href={`/resumes/${scannedResume.id}`}
+                            target="_blank"
+                            className="text-[10px] text-[#a0caff] font-bold hover:underline flex items-center gap-0.5"
+                          >
+                            <span>View Full Resume</span>
+                            <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                          </Link>
+                        )}
+                      </div>
+                      
+                      <div className="border border-[#ffffff14] bg-white rounded-lg p-6 text-[#1a1a1a] shadow-inner max-h-[600px] overflow-y-auto custom-scrollbar select-none scale-[0.98] origin-top">
+                        {scannedResume ? (
+                          <div className="text-[10px] origin-top scale-[0.80] -mx-8 -my-12">
+                            <TemplateEngine
+                              template={scannedResume.template}
+                              personalInfo={scannedResume.experience?.personalInfo || { name: scannedResume.title, email: "", phone: "", jobTitle: "", location: "", website: "" }}
+                              summary={scannedResume.summary || ""}
+                              skills={scannedResume.skills || ""}
+                              experience={scannedResume.experience?.items || []}
+                              education={scannedResume.education?.items || []}
+                              projects={scannedResume.projects?.items || []}
+                              certifications={scannedResume.education?.certifications || []}
+                              settings={scannedResume.experience?.settings}
+                            />
+                          </div>
+                        ) : uploadedResume ? (
+                          <div className="text-left font-['Inter'] text-[10px] text-[#333] space-y-4">
+                            <div className="border-b border-gray-200 pb-2 flex items-center justify-between">
+                              <span className="font-bold text-gray-500 uppercase tracking-wider text-[8px]">Extracted Text Preview</span>
+                              <span className="text-[8px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-semibold">Document File</span>
+                            </div>
+                            <div className="whitespace-pre-wrap font-sans text-[9px] leading-relaxed max-h-[500px] overflow-y-auto pr-1">
+                              {uploadedResume.content}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-left font-['Inter'] text-[10px] text-[#333] space-y-4">
+                            <div className="border-b border-gray-200 pb-2 flex items-center justify-between">
+                              <span className="font-bold text-gray-500 uppercase tracking-wider text-[8px]">ATS Scan Summary</span>
+                              <span className="text-[8px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-semibold">Processed File</span>
+                            </div>
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-bold text-gray-800 text-[11px] mb-1">Parsed Title</h4>
+                                <p className="text-gray-600">{analysisResult.resumeTitle}</p>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-800 text-[11px] mb-1">Target Profile</h4>
+                                <p className="text-gray-600">{analysisResult.jobTitle || "General Scan"}</p>
+                              </div>
+                              <div className="pt-2 border-t border-gray-100 text-[9px] text-gray-400 italic">
+                                File source text is kept encrypted on parser cache.
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="lg:col-span-8 space-y-6">
-                    <ScoreBreakdown
-                      keywordScore={analysisResult.keywordScore}
-                      formattingScore={analysisResult.formattingScore}
-                      skillsScore={analysisResult.skillsScore}
-                      experienceScore={analysisResult.experienceScore}
-                      educationScore={analysisResult.educationScore}
-                    />
+                    {/* Column 2: Score Breakdown, Strengths, Compatibility (Middle, col-span-4) */}
+                    <div className="lg:col-span-4 space-y-6">
+                      <ScoreBreakdown
+                        keywordScore={analysisResult.keywordScore}
+                        formattingScore={analysisResult.formattingScore}
+                        skillsScore={analysisResult.skillsScore}
+                        experienceScore={analysisResult.experienceScore}
+                        educationScore={analysisResult.educationScore}
+                      />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Strengths strengths={analysisResult.strengths} />
+
+                      <ATSCompatibility
+                        formattingScore={analysisResult.formattingScore}
+                        keywordScore={analysisResult.keywordScore}
+                      />
+                    </div>
+
+                    {/* Column 3: Section Health, Suggestions, Matched Skills (Right, col-span-4) */}
+                    <div className="lg:col-span-4 space-y-6">
+                      {/* Resume Section Health */}
+                      <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 space-y-4">
+                        <div>
+                          <h4 className="font-['Geist'] text-sm font-bold text-white uppercase tracking-wider">
+                            Resume Section Health
+                          </h4>
+                          <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] mt-0.5">
+                            Status checks evaluating individual section details.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 font-['Inter'] text-xs">
+                          {[
+                            { name: "Summary", score: analysisResult.overallScore },
+                            { name: "Skills", score: analysisResult.skillsScore },
+                            { name: "Experience", score: analysisResult.experienceScore },
+                            { name: "Projects", score: Math.min(100, Math.round(analysisResult.experienceScore * 0.9 + 5)) },
+                            { name: "Education", score: analysisResult.educationScore },
+                            { name: "Certifications", score: Math.min(100, Math.round(analysisResult.educationScore * 0.95)) },
+                          ].map((section) => {
+                            const getHealthStyle = (val: number) => {
+                              if (val >= 80) return { label: "Excellent", dot: "bg-[#10b981]" };
+                              if (val >= 60) return { label: "Average", dot: "bg-[#dc7506]" };
+                              return { label: "Weak", dot: "bg-[#ef4444]" };
+                            };
+                            const health = getHealthStyle(section.score);
+
+                            return (
+                              <div key={section.name} className="flex items-center justify-between">
+                                <span className="text-[#bfc7d4] font-medium">{section.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className={`h-2.5 w-2.5 rounded-full ${health.dot}`} />
+                                  <span className="text-white font-bold text-[11px]">{health.label}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       <Suggestions suggestions={analysisResult.suggestions} />
+
+                      <MatchedSkills skills={scannedResume?.skills?.split(",").map((s: string) => s.trim()).filter(Boolean) || []} />
+                    </div>
+                  </div>
+
+                  {/* AI Resume Review feedback section */}
+                  <AIResumeReview report={analysisResult} />
+
+                  {/* Recommended Actions Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-[#ffffff0a]">
+                    {/* Action 1: Improve Resume */}
+                    <div
+                      onClick={() => {
+                        if (scannedResume) {
+                          router.push(`/resumes/${scannedResume.id}/edit`);
+                        } else {
+                          setWizardState("step1");
+                        }
+                      }}
+                      className="bg-[#1d2022] border border-[#ffffff14] hover:border-[#a0caff]/35 rounded-xl p-5 flex items-center justify-between cursor-pointer transition-all hover:bg-[#222528] group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#8b5cf6]/10 text-[#a78bfa] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined">auto_fix_high</span>
+                        </div>
+                        <div>
+                          <h5 className="font-['Geist'] text-xs font-bold text-white">Improve Resume</h5>
+                          <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] mt-0.5">
+                            Get AI-powered suggestions to improve sections.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-[#bfc7d4] group-hover:translate-x-1 transition-transform">
+                        arrow_forward
+                      </span>
+                    </div>
+
+                    {/* Action 2: Download Report */}
+                    <div
+                      onClick={handleDownloadReport}
+                      className="bg-[#1d2022] border border-[#ffffff14] hover:border-[#a0caff]/35 rounded-xl p-5 flex items-center justify-between cursor-pointer transition-all hover:bg-[#222528] group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#2294f4]/10 text-[#a0caff] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined">download</span>
+                        </div>
+                        <div>
+                          <h5 className="font-['Geist'] text-xs font-bold text-white">Download Report</h5>
+                          <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] mt-0.5">
+                            Download detailed ATS analysis as PDF.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-[#bfc7d4] group-hover:translate-x-1 transition-transform">
+                        arrow_forward
+                      </span>
+                    </div>
+
+                    {/* Action 3: Analyze Another */}
+                    <div
+                      onClick={handleReset}
+                      className="bg-[#1d2022] border border-[#ffffff14] hover:border-[#a0caff]/35 rounded-xl p-5 flex items-center justify-between cursor-pointer transition-all hover:bg-[#222528] group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#10b981]/10 text-[#34d399] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined">upload_file</span>
+                        </div>
+                        <div>
+                          <h5 className="font-['Geist'] text-xs font-bold text-white">Analyze Another Resume</h5>
+                          <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] mt-0.5">
+                            Upload another resume and analyze.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-[#bfc7d4] group-hover:translate-x-1 transition-transform">
+                        arrow_forward
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                {/* Bottom Navigation */}
-                <div className="pt-6 border-t border-[#ffffff0a] flex justify-between">
-                  <button
-                    onClick={() => router.push("/dashboard")}
-                    className="bg-transparent border border-[#ffffff14] hover:bg-white/5 text-[#bfc7d4] hover:text-white px-6 py-2.5 rounded-lg text-xs font-bold font-['Geist'] transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">dashboard</span>
-                    <span>Return To Dashboard</span>
-                  </button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </main>
         </div>
       </div>

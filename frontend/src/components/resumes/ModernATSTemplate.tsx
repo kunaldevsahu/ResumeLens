@@ -197,7 +197,7 @@ export default function ModernATSTemplate({
                 <div key={exp.id} className={spacingClasses.itemGap}>
                   <div className="flex justify-between items-baseline">
                     <h3 className={`font-bold ${sizeClasses.body} text-slate-900`}>
-                      {exp.role || "Software Engineer"}
+                      {exp.role}
                     </h3>
                     <span className={`${sizeClasses.sub} font-bold text-slate-500 uppercase tracking-wider`}>
                       {exp.dates}
@@ -459,10 +459,10 @@ export default function ModernATSTemplate({
       {/* Centered Header Section */}
       <header className="flex flex-col items-center text-center pb-2">
         <h1 className={`${sizeClasses.name} font-bold text-slate-900 tracking-tight mb-1`}>
-          {personalInfo.name || "Untitled Name"}
+          {personalInfo.name}
         </h1>
         <p className={`${sizeClasses.title} font-semibold text-slate-700 tracking-wider uppercase mb-3`}>
-          {personalInfo.jobTitle || "Job Title"}
+          {personalInfo.jobTitle}
         </p>
         
         {/* Contact info items with custom monochrome inline SVG icons in circular borders */}

@@ -10,73 +10,81 @@ interface SuggestionsProps {
 }
 
 export default function Suggestions({ suggestions }: SuggestionsProps) {
-  const getPriorityStyle = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return {
-          textColor: "text-[#ffb4ab]",
-          bgColor: "bg-[#93000a]/20",
-          borderColor: "border-[#ffb4ab]/20",
-          icon: "error",
-          iconColor: "text-[#ffb4ab]",
-        };
-      case "medium":
-        return {
-          textColor: "text-[#ffb781]",
-          bgColor: "bg-[#dc7506]/10",
-          borderColor: "border-[#dc7506]/20",
-          icon: "warning",
-          iconColor: "text-[#ffb781]",
-        };
-      default:
-        return {
-          textColor: "text-[#a0caff]",
-          bgColor: "bg-[#2294f4]/10",
-          borderColor: "border-[#2294f4]/20",
-          icon: "info",
-          iconColor: "text-[#a0caff]",
-        };
-    }
-  };
+  const highPriority = suggestions.filter((s) => s.priority.toLowerCase() === "high");
+  const mediumPriority = suggestions.filter((s) => s.priority.toLowerCase() === "medium");
+  const lowPriority = suggestions.filter(
+    (s) =>
+      s.priority.toLowerCase() === "low" ||
+      s.priority.toLowerCase() === "info" ||
+      !["high", "medium"].includes(s.priority.toLowerCase())
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="bg-[#1d2022] border border-[#ffffff14] rounded-xl p-6 space-y-5">
       <div>
-        <h3 className="font-['Geist'] text-lg font-bold text-white mb-1 flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-[#ef4444]">lightbulb</span>
+        <h4 className="font-['Geist'] text-sm font-bold text-white uppercase tracking-wider">
           Improvement Suggestions
-        </h3>
-        <p className="text-xs text-[#bfc7d4] opacity-75">
-          Actionable recommendations based on semantic analysis to improve your resume ranking.
+        </h4>
+        <p className="text-[10px] text-[#bfc7d4]/60 font-['Inter'] mt-0.5">
+          Actionable recommendations based on AI analysis to improve your resume score.
         </p>
       </div>
 
-      <div className="space-y-3">
-        {suggestions.map((sug, idx) => {
-          const style = getPriorityStyle(sug.priority);
-          return (
-            <div
-              key={idx}
-              className={`flex items-start gap-4 p-4 rounded-xl border bg-[#1d2022] border-[#ffffff14] hover:border-[#ffffff20] transition-colors duration-200`}
-            >
-              <div className={`w-8 h-8 rounded-lg ${style.bgColor} flex-shrink-0 flex items-center justify-center ${style.iconColor}`}>
-                <span className="material-symbols-outlined text-[18px]">
-                  {style.icon}
-                </span>
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded border ${style.textColor} ${style.bgColor} ${style.borderColor}`}>
-                    {sug.priority} Priority
-                  </span>
-                </div>
-                <p className="text-xs font-medium text-[#e1e2e4] leading-relaxed font-['Inter']">
-                  {sug.message}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+      <div className="space-y-5">
+        {/* High Priority */}
+        {highPriority.length > 0 && (
+          <div className="space-y-2.5">
+            <span className="text-[8px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#93000a]/20 border border-[#ffb4ab]/20 text-[#ffb4ab] inline-block font-['Geist']">
+              High Priority
+            </span>
+            <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#e1e2e4] font-['Inter'] leading-relaxed">
+              {highPriority.map((s, idx) => (
+                <li key={idx} className="hover:text-white transition-colors">
+                  {s.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Medium Priority */}
+        {mediumPriority.length > 0 && (
+          <div className="space-y-2.5">
+            <span className="text-[8px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#dc7506]/10 border border-[#dc7506]/20 text-[#ffb781] inline-block font-['Geist']">
+              Medium Priority
+            </span>
+            <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#e1e2e4] font-['Inter'] leading-relaxed">
+              {mediumPriority.map((s, idx) => (
+                <li key={idx} className="hover:text-white transition-colors">
+                  {s.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Low Priority */}
+        {lowPriority.length > 0 && (
+          <div className="space-y-2.5">
+            <span className="text-[8px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#2294f4]/15 border border-[#2294f4]/20 text-[#a0caff] inline-block font-['Geist']">
+              Low Priority
+            </span>
+            <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#e1e2e4] font-['Inter'] leading-relaxed">
+              {lowPriority.map((s, idx) => (
+                <li key={idx} className="hover:text-white transition-colors">
+                  {s.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {suggestions.length === 0 && (
+          <div className="text-center py-6 text-[#bfc7d4]/40 font-['Inter'] text-xs">
+            <span className="material-symbols-outlined text-xl mb-1 block">thumb_up</span>
+            No improvements needed. Your resume is optimized!
+          </div>
+        )}
       </div>
     </div>
   );

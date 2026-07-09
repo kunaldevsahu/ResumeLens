@@ -15,11 +15,7 @@ export const analyzeResume = async (req: AuthenticatedRequest, res: Response) =>
     const userId = req.user!.userId;
     const { resumeId, resumeTitle, resumeContent, jobDescription } = req.body;
 
-    if (!jobDescription) {
-      return res.status(400).json({
-        message: "Job description is required for analysis",
-      });
-    }
+    // jobDescription is optional for general best-practice scans
 
     const report = await atsService.analyzeResume(userId, {
       resumeId,

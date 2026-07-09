@@ -43,7 +43,34 @@ function EditResumeBuilder() {
       try {
         setLoading(true);
         const data = await getResumeById(params.id);
-        const nextResume = resumeToBuilderState(data);
+        let nextResume = resumeToBuilderState(data);
+
+        // Pre-fill check: if there is a client-side uploaded resume data in session storage,
+        // merge/overlay it to ensure it is the source of truth!
+        const lastUploadedStr = typeof window !== "undefined" ? sessionStorage.getItem("lastUploadedResumeData") : null;
+        if (lastUploadedStr) {
+          try {
+            const parsed = JSON.parse(lastUploadedStr);
+            
+            // Extract the next resume state from the parsed structure
+            const uploadedState = resumeToBuilderState({
+              ...data,
+              ...parsed,
+            });
+            
+            nextResume = {
+              ...nextResume,
+              ...uploadedState,
+              // Keep original ID and template
+              template: nextResume.template,
+            };
+
+            // Clear it so it's a one-time pre-fill
+            sessionStorage.removeItem("lastUploadedResumeData");
+          } catch (e) {
+            console.error("Failed to parse lastUploadedResumeData", e);
+          }
+        }
 
         setResume({
           ...nextResume,

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/auth.store";
 
 interface TemplateItem {
   id: string;
@@ -83,6 +84,18 @@ const templates: TemplateItem[] = [
 ];
 
 export default function LandingPage() {
+  const logout = useAuthStore((state) => state.logout);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("logout") === "true") {
+        logout();
+        window.history.replaceState({}, "", "/");
+      }
+    }
+  }, [logout]);
+
   // State for the interactive mock builder preview
   const [name, setName] = useState("Jane Doe");
   const [jobTitle, setJobTitle] = useState("Senior Product Designer");

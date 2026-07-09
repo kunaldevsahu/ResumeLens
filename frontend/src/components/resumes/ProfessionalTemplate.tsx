@@ -53,10 +53,10 @@ export default function ProfessionalTemplate({
     <div className="font-serif flex flex-col gap-7 w-full text-left">
       <header className="text-center border-b-2 border-slate-900 pb-6">
         <h1 className="font-['Playfair_Display'] text-4xl font-bold tracking-tight text-slate-900 uppercase">
-          {personalInfo.name || "Untitled Name"}
+          {personalInfo.name}
         </h1>
         <p className="font-sans text-xs font-bold tracking-widest text-[#2294f4] mt-2 uppercase">
-          {personalInfo.jobTitle || "Job Title"}
+          {personalInfo.jobTitle}
         </p>
         <div className="flex justify-center flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500 mt-4 font-sans">
           <span className="flex items-center gap-1">

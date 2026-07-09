@@ -176,8 +176,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    logout();
-    router.push("/login");
+    window.location.href = "/?logout=true";
   };
 
   // Using user initial-based logo instead of profile picture URL

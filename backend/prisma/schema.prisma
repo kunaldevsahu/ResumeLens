@@ -81,5 +81,6 @@ model AtsAnalysis {
   missingKeywords    Json     // array of strings
   strengths          Json     // array of strings
   suggestions        Json     // array of objects: { priority: String, message: String }
+  aiReview           Json?    // AI Resume Review structure
   createdAt          DateTime @default(now())
 }

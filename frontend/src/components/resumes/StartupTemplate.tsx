@@ -361,10 +361,10 @@ export default function StartupTemplate({
         <div className="col-span-8 flex flex-col justify-between">
           <div>
             <h1 className={`${sizeClasses.name} font-extrabold text-slate-900 tracking-tight mb-0.5`}>
-              {personalInfo.name || "Untitled Name"}
+              {personalInfo.name}
             </h1>
             <p className={`${sizeClasses.title} font-bold text-slate-500 uppercase tracking-wider`}>
-              {personalInfo.jobTitle || "Job Title"}
+              {personalInfo.jobTitle}
             </p>
           </div>
 

@@ -418,10 +418,10 @@ export default function MinimalTemplate({
       {/* Header (Flex justify-between centered) */}
       <header className="flex flex-col items-center text-center pb-4 border-b border-slate-100">
         <h1 className={`${sizeClasses.name} font-bold text-slate-900 tracking-tight mb-0.5`}>
-          {personalInfo.name || "Untitled Name"}
+          {personalInfo.name}
         </h1>
         <p className={`${sizeClasses.title} font-semibold text-slate-500 uppercase tracking-wider mb-2.5`}>
-          {personalInfo.jobTitle || "Job Title"}
+          {personalInfo.jobTitle}
         </p>
 
         {/* Contact details separated by vertical lines, with icons */}

@@ -446,10 +446,10 @@ export default function TwoColumnTemplate({
       {/* Centered Top Header with Blue separator line */}
       <header className="flex flex-col items-center text-center pb-3 border-b-2 border-blue-500 w-full">
         <h1 className="font-serif text-2xl font-bold text-slate-900 tracking-tight mb-0.5">
-          {personalInfo.name || "Untitled Name"}
+          {personalInfo.name}
         </h1>
         <p className="font-sans text-[10px] font-semibold text-blue-600 tracking-wider uppercase mb-2">
-          {personalInfo.jobTitle || "Job Title"}
+          {personalInfo.jobTitle}
         </p>
         
         {/* Contact info organized on two lines */}

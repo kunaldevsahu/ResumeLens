@@ -420,10 +420,10 @@ export default function ExecutiveTemplate({
       <header className="flex flex-col gap-2 pb-2">
         <div className={`flex justify-between items-baseline border-b border-slate-300 ${spacingClasses.paddingBottom}`}>
           <h1 className={`${sizeClasses.name} font-extrabold tracking-tight text-slate-900 uppercase`}>
-            {personalInfo.name || "Untitled Name"}
+            {personalInfo.name}
           </h1>
           <p className={`${sizeClasses.title} font-bold text-slate-700 uppercase`}>
-            {personalInfo.jobTitle || "Job Title"}
+            {personalInfo.jobTitle}
           </p>
         </div>
         {/* Right-aligned contact info below the separator line */}
