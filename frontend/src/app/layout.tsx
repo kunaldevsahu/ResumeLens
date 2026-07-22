@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "ResumeLens | Career Engine",
   description: "Modern SaaS resume builder with real-time A4 preview, templates, and ATS optimization.",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

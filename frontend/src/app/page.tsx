@@ -131,9 +131,9 @@ export default function LandingPage() {
       {/* 1. Header & Navigation */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-header border-b border-[#ffffff08] bg-[#111415]/75 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-[#a0caff] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-              <span className="material-symbols-outlined text-[#003259] font-bold text-lg">lens</span>
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <img src="/logo.svg" alt="ResumeLens Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-['Geist'] font-bold text-lg text-white tracking-tight">
               ResumeLens

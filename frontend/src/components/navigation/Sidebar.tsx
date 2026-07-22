@@ -44,13 +44,16 @@ export default function Sidebar() {
       <aside className="fixed left-0 top-0 hidden h-screen w-60 flex-col border-r border-[#ffffff14] bg-[#111415] py-6 px-4 md:flex z-50">
         {/* Brand Logo */}
         <div className="mb-8 px-2">
-          <Link href="/dashboard" className="block">
-            <h1 className="font-['Geist'] text-2xl font-bold tracking-tight text-[#a0caff]">
-              ResumeLens
-            </h1>
-            <p className="font-['Geist'] text-[10px] font-bold tracking-widest text-[#bfc7d4] opacity-60 uppercase mt-1">
-              Career Engine
-            </p>
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="ResumeLens Logo" className="w-8 h-8 object-contain" />
+            <div>
+              <h1 className="font-['Geist'] text-lg font-bold tracking-tight text-white leading-none">
+                ResumeLens
+              </h1>
+              <p className="font-['Geist'] text-[9px] font-bold tracking-widest text-[#a0caff] opacity-80 uppercase mt-1">
+                Career Engine
+              </p>
+            </div>
           </Link>
         </div>
 
