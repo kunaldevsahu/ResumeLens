@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="frontend/public/logo.svg" alt="ResumeLens Logo" width="120" height="120" />
-</p>
+
 
 <h1 align="center">ResumeLens</h1>
 
